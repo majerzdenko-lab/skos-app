@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id        String      @id @default(cuid())
+  name      String
+  date      DateTime
+  location  String
+  edition   Int?
+  status    EventStatus @default(SETUP)
+  createdAt DateTime    @default(now())
+
+  categories   Category[]
+  participants Participant[]
+  eventUsers   EventUser[]
+}
+
+enum EventStatus {
+  SETUP
+  REGISTRATION
+  ACTIVE
+  CLOSED
+}
+
+model Category {
+  id             String       @id @default(cuid())
+  eventId        String
+  event          Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name           String
+  order          Int
+  plotDimensions String
+  plotCount      Int
+  scored         Boolean      @default(true)
+  categoryType   CategoryType @default(INDIVIDUAL)
+
+  entries Entry[]
+  teams   Team[]
+}
+
+enum CategoryType {
+  INDIVIDUAL
+  TEAM
+}
+
+model Participant {
+  id               String   @id @default(cuid())
+  eventId          String
+  event            Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  firstName        String
+  lastName         String
+  city             String
+  dateOfBirth      String?
+  email            String?
+  emailConsent     Boolean  @default(false)
+  unsubscribeToken String?  @unique
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id])
+  createdAt        DateTime @default(now())
+
+  entries         Entry[]
+  teamMemberships TeamMember[]
+}
+
+model Entry {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  plotNumber  Int?
+
+  time1       Int?
+  time2       Int?
+  baseTime    Int?
+
+  penalty     Int     @default(0)
+  penaltyNote String?
+
+  dnr       Boolean  @default(false)
+  rank      Int?
+  updatedAt DateTime @updatedAt
+
+  @@unique([participantId, categoryId])
+}
+
+model Team {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  plotNumber Int?
+
+  time1       Int?
+  time2       Int?
+  baseTime    Int?
+
+  penalty     Int     @default(0)
+  penaltyNote String?
+  rank        Int?
+  updatedAt   DateTime @updatedAt
+
+  members TeamMember[]
+}
+
+model TeamMember {
+  id            String      @id @default(cuid())
+  teamId        String
+  team          Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, participantId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String?
+  firstName    String?
+  lastName     String?
+  createdAt    DateTime @default(now())
+
+  eventRoles   EventUser[]
+  participants Participant[]
+}
+
+model EventUser {
+  id      String @id @default(cuid())
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  role    Role
+
+  @@unique([userId, eventId])
+}
+
+enum Role {
+  ADMIN
+  REGISTRAR
+  JUDGE
+  COMPETITOR
+}

@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .results-sheet {
+    font-family: 'Times New Roman', Times, serif;
+  }
+
+  .category-page {
+    page-break-after: always;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 0.5pt solid #ccc;
+    padding: 3px 6px;
+    font-size: 9pt;
+  }
+
+  th {
+    background-color: #eee !important;
+    -webkit-print-color-adjust: exact;
+  }
+}
