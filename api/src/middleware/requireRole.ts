@@ -13,6 +13,12 @@ export function requireEventRole(...roles: Role[]) {
       res.status(400).json({ error: 'Missing eventId' });
       return;
     }
+    // System admin bypasses per-event role checks
+    const user = await prisma.user.findUnique({ where: { id: req.user.id }, select: { systemRole: true } });
+    if (user?.systemRole === 'ADMIN') {
+      next();
+      return;
+    }
     const eventUser = await prisma.eventUser.findUnique({
       where: { userId_eventId: { userId: req.user.id, eventId } },
     });

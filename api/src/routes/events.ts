@@ -59,11 +59,20 @@ router.post('/', authenticate, validate(createEventSchema), async (req, res) => 
   res.status(201).json(event);
 });
 
-router.get('/:id/my-role', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
+router.get('/:id/my-role', authenticate, async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { systemRole: true } });
+  if (user?.systemRole === 'ADMIN') {
+    const eu = await prisma.eventUser.findUnique({
+      where: { userId_eventId: { userId: req.user!.id, eventId: req.params.id } },
+    });
+    res.json({ role: eu?.role ?? 'ADMIN' });
+    return;
+  }
   const eu = await prisma.eventUser.findUnique({
     where: { userId_eventId: { userId: req.user!.id, eventId: req.params.id } },
   });
-  res.json({ role: eu?.role ?? null });
+  if (!eu) { res.status(403).json({ error: 'Forbidden' }); return; }
+  res.json({ role: eu.role });
 });
 
 router.get('/:id', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
