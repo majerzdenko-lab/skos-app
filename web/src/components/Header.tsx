@@ -39,11 +39,11 @@ export default function Header() {
 
   return (
     <header className="border-b border-gray-200 bg-white">
-      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between gap-4">
 
         {/* SKoS logo */}
         <div className="flex items-center shrink-0">
-          <img src="/skos-logo.jpg" alt="Slovenský kosecký spolok" className="h-10 w-auto" />
+          <img src="/skos-logo.jpg" alt="Slovenský kosecký spolok" className="h-16 w-auto" />
         </div>
 
         {/* User info */}
