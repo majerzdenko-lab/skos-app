@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, users as usersApi } from '../../api/endpoints';
-import type { Event, Category, EventUser, Role } from '../../api/endpoints';
+import type { Event, Category, EventUser, Role, CategoryType } from '../../api/endpoints';
 import { useAuthStore } from '../../stores/authStore';
 import Layout from '../../components/Layout';
 
@@ -45,6 +45,7 @@ export default function EventSetup() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [templateModal, setTemplateModal] = useState(false);
   const [templatePreview, setTemplatePreview] = useState<Array<{ name: string; plotDimensions: string; plotCount: number; categoryType: string; scored: boolean }>>([]);
+  const [templateSelected, setTemplateSelected] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!id) return;
@@ -64,10 +65,25 @@ export default function EventSetup() {
     navigate('/dashboard');
   };
 
-  const handleLoadTemplate = async () => {
+  const handleLoadTemplate = async (selected?: Array<{ name: string; plotDimensions: string; plotCount: number; categoryType: string; scored: boolean }>) => {
     if (!id) return;
-    const { data } = await categoriesApi.loadTemplate(id);
-    setCats((prev) => [...prev, ...data]);
+    if (selected) {
+      const created = await Promise.all(
+        selected.map((cat) =>
+          categoriesApi.create(id, {
+            name: cat.name,
+            plotDimensions: cat.plotDimensions,
+            plotCount: cat.plotCount,
+            scored: cat.scored,
+            categoryType: cat.categoryType as CategoryType,
+          }).then((r) => r.data)
+        )
+      );
+      setCats((prev) => [...prev, ...created]);
+    } else {
+      const { data } = await categoriesApi.loadTemplate(id);
+      setCats((prev) => [...prev, ...data]);
+    }
   };
 
   const handleSaveTemplate = async () => {
@@ -256,8 +272,10 @@ export default function EventSetup() {
                       try {
                         const { data } = await categoriesApi.templatePreview(id);
                         setTemplatePreview(data);
+                        setTemplateSelected(new Set(data.map((_, i) => i)));
                       } catch {
                         setTemplatePreview([]);
+                        setTemplateSelected(new Set());
                       }
                       setTemplateModal(true);
                     }}
@@ -284,26 +302,63 @@ export default function EventSetup() {
             {templateModal && (
               <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
                 <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
-                  <h3 className="font-semibold mb-4">Šablóna kategórií</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold">Šablóna kategórií</h3>
+                    {templatePreview.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (templateSelected.size === templatePreview.length) {
+                            setTemplateSelected(new Set());
+                          } else {
+                            setTemplateSelected(new Set(templatePreview.map((_, i) => i)));
+                          }
+                        }}
+                        className="text-xs text-gray-500 hover:text-gray-700 underline"
+                      >
+                        {templateSelected.size === templatePreview.length ? 'Odznačiť všetky' : 'Označiť všetky'}
+                      </button>
+                    )}
+                  </div>
                   {templatePreview.length === 0 ? (
                     <p className="text-sm text-gray-500 mb-5">Žiadna šablóna nie je uložená.</p>
                   ) : (
-                    <div className="space-y-2 mb-5 max-h-80 overflow-y-auto">
+                    <div className="space-y-1 mb-5 max-h-80 overflow-y-auto">
                       {templatePreview.map((cat, i) => (
-                        <div key={i} className="flex items-center justify-between border border-gray-200 rounded px-3 py-2 text-sm">
-                          <span className="font-medium">{cat.name}</span>
+                        <label
+                          key={i}
+                          className="flex items-center gap-3 border border-gray-200 rounded px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={templateSelected.has(i)}
+                            onChange={() => {
+                              setTemplateSelected((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(i)) next.delete(i); else next.add(i);
+                                return next;
+                              });
+                            }}
+                            className="accent-green-700"
+                          />
+                          <span className="font-medium flex-1">{cat.name}</span>
                           <span className="text-xs text-gray-400">{cat.plotDimensions} · {cat.plotCount} políčok · {cat.categoryType === 'TEAM' ? 'Tímy' : 'Jednotlivci'}</span>
-                        </div>
+                        </label>
                       ))}
                     </div>
                   )}
                   <div className="flex gap-2">
                     {templatePreview.length > 0 && (
                       <button
-                        onClick={async () => { await handleLoadTemplate(); setTemplateModal(false); }}
-                        className="bg-green-700 text-white px-4 py-1.5 rounded text-sm hover:bg-green-800"
+                        disabled={templateSelected.size === 0}
+                        onClick={async () => {
+                          const sel = templatePreview.filter((_, i) => templateSelected.has(i));
+                          await handleLoadTemplate(sel);
+                          setTemplateModal(false);
+                        }}
+                        className="bg-green-700 text-white px-4 py-1.5 rounded text-sm hover:bg-green-800 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        Pridaj do podujatia
+                        Pridaj do podujatia ({templateSelected.size})
                       </button>
                     )}
                     <button
