@@ -272,30 +272,32 @@ export default function Registration() {
                 <td className="px-3 py-2 text-xs text-gray-600">
                   {p.entries.length > 0 ? p.entries.map((e) => e.category.name).join(', ') : <span className="text-amber-600">— rozhodca</span>}
                 </td>
-                <td className="px-3 py-2 relative" ref={openMenuId === p.id ? menuRef : null}>
-                  <button
-                    onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}
-                    className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-gray-400 font-bold text-lg leading-none"
-                  >
-                    ···
-                  </button>
-                  {openMenuId === p.id && (
-                    <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[180px]">
-                      <button onClick={() => openEditModal(p)}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
-                        Upraviť
-                      </button>
-                      <button onClick={() => openJudgeModal(p)}
-                        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
-                        Určiť za rozhodcu
-                      </button>
-                      <div className="border-t border-gray-100 my-1" />
-                      <button onClick={() => handleDelete(p.id)}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                        Vymazať
-                      </button>
-                    </div>
-                  )}
+                <td className="px-3 py-2">
+                  <div className="relative" ref={openMenuId === p.id ? menuRef : null}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === p.id ? null : p.id)}
+                      className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-200 text-gray-400 font-bold text-lg leading-none"
+                    >
+                      ···
+                    </button>
+                    {openMenuId === p.id && (
+                      <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[180px]">
+                        <button onClick={() => openEditModal(p)}
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
+                          Upraviť
+                        </button>
+                        <button onClick={() => openJudgeModal(p)}
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50">
+                          Určiť za rozhodcu
+                        </button>
+                        <div className="border-t border-gray-100 my-1" />
+                        <button onClick={() => handleDelete(p.id)}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                          Vymazať
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
