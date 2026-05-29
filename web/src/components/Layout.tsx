@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import Header from './Header';
 import Footer from './Footer';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 export default function Layout({ children, className = '' }: Props) {
   return (
     <div className={`min-h-screen flex flex-col bg-white ${className}`}>
+      <Header />
       <div className="flex-1">{children}</div>
       <Footer />
     </div>
