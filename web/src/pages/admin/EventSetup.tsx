@@ -175,21 +175,26 @@ export default function EventSetup() {
 
         {/* Navigation links */}
         <div className="flex flex-wrap gap-4 mb-6 text-sm border-b border-gray-200">
-          {([
-            { key: 'info', label: 'Informácie' },
-            { key: 'categories', label: 'Kategórie' },
-            ...(myRole === 'ADMIN' ? [{ key: 'users', label: 'Používatelia' }] : []),
-          ] as { key: typeof tab; label: string }[]).map(({ key, label }) => (
+          <button
+            onClick={() => setTab('info')}
+            className={`pb-2 px-1 border-b-2 transition-colors ${tab === 'info' ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'}`}
+          >
+            Informácie
+          </button>
+          <button
+            onClick={() => setTab('categories')}
+            className={`pb-2 px-1 border-b-2 transition-colors ${tab === 'categories' ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'}`}
+          >
+            Kategórie
+          </button>
+          {myRole === 'ADMIN' && (
             <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`pb-2 px-1 border-b-2 transition-colors ${
-                tab === key ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'
-              }`}
+              onClick={() => setTab('users')}
+              className={`pb-2 px-1 border-b-2 transition-colors ${tab === 'users' ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'}`}
             >
-              {label}
+              Používatelia
             </button>
-          ))}
+          )}
           {!isJudge && (
             <Link
               to={`/events/${id}/registration`}
@@ -287,7 +292,7 @@ export default function EventSetup() {
           </div>
         )}
 
-        {tab === 'users' && (
+        {tab === 'users' && myRole === 'ADMIN' && (
           <div>
             <h2 className="font-semibold mb-3">Používatelia a roly</h2>
             {myRole === 'ADMIN' && (
