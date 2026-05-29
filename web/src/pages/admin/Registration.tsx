@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { events as eventsApi, categories as categoriesApi, participants as participantsApi } from '../../api/endpoints';
+import { events as eventsApi, categories as categoriesApi, participants as participantsApi, entries as entriesApi } from '../../api/endpoints';
 import type { Event, Category, ParticipantWithEntries } from '../../api/endpoints';
 import Layout from '../../components/Layout';
 
@@ -38,6 +38,11 @@ export default function Registration() {
   const [editTarget, setEditTarget] = useState<ParticipantWithEntries | null>(null);
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', city: '', dateOfBirth: '', email: '', emailConsent: false });
   const [editLoading, setEditLoading] = useState(false);
+
+  // Status workflow
+  const [closeRegModal, setCloseRegModal] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -162,9 +167,52 @@ export default function Registration() {
     }
   };
 
+  // Close registration → advance to DRAW
+  const handleCloseRegistration = async () => {
+    if (!id) return;
+    setStatusLoading(true);
+    setStatusError('');
+    try {
+      const { data } = await eventsApi.setStatus(id, 'DRAW');
+      setEvent(data);
+      setCloseRegModal(false);
+    } catch {
+      setStatusError('Nepodarilo sa uzavrieť registráciu.');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  // Close draw → advance to ACTIVE (checks all entries have plotNumber)
+  const handleStartCompetition = async () => {
+    if (!id) return;
+    setStatusLoading(true);
+    setStatusError('');
+    try {
+      // Check all categories have fully drawn plots
+      const allEntries = await Promise.all(cats.map((c) => entriesApi.list(id, c.id).then((r) => ({ cat: c, entries: r.data }))));
+      const incomplete = allEntries.filter(({ entries }) => entries.some((e) => e.plotNumber === null));
+      if (incomplete.length > 0) {
+        setStatusError(`Nie všetky políčka sú vyžrebované. Chýba v kategóriách: ${incomplete.map((x) => x.cat.name).join(', ')}.`);
+        setStatusLoading(false);
+        return;
+      }
+      const { data } = await eventsApi.setStatus(id, 'ACTIVE');
+      setEvent(data);
+    } catch {
+      setStatusError('Nepodarilo sa spustiť súťaž.');
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   const filtered = parts.filter((p) => {
     const matchSearch = !search || `${p.firstName} ${p.lastName}`.toLowerCase().includes(search.toLowerCase()) || p.city.toLowerCase().includes(search.toLowerCase());
-    const matchCat = !filterCat || p.entries.some((e) => e.categoryId === filterCat);
+    const matchCat = !filterCat
+      ? true
+      : filterCat === '__none__'
+        ? p.entries.length === 0
+        : p.entries.some((e) => e.categoryId === filterCat);
     return matchSearch && matchCat;
   });
 
@@ -179,15 +227,49 @@ export default function Registration() {
         <div className="flex items-center gap-3 mb-1">
           <Link to={`/events/${id}/setup`} className="text-sm text-gray-400 hover:text-gray-700">← Nastavenia</Link>
         </div>
-        <h1 className="text-2xl font-bold mb-6">{event?.name} — Registrácia</h1>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <h1 className="text-2xl font-bold">{event?.name} — Registrácia</h1>
+          <div className="flex flex-col items-end gap-2">
+            {event?.status === 'REGISTRATION' && (
+              <button onClick={() => { setStatusError(''); setCloseRegModal(true); }}
+                className="bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-amber-700 whitespace-nowrap">
+                Uzavrieť registráciu →
+              </button>
+            )}
+            {event?.status === 'DRAW' && (
+              <button onClick={handleStartCompetition} disabled={statusLoading}
+                className="bg-green-700 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-green-800 disabled:opacity-50 whitespace-nowrap">
+                {statusLoading ? 'Kontrolujem…' : 'Začať súťaž →'}
+              </button>
+            )}
+            {statusError && <p className="text-xs text-red-600 max-w-xs text-right">{statusError}</p>}
+          </div>
+        </div>
 
-        {/* Category summary */}
+        {/* Category filter chips */}
         <div className="flex flex-wrap gap-2 mb-6">
+          <button
+            onClick={() => setFilterCat('')}
+            className={`text-xs rounded px-3 py-1 transition-colors ${filterCat === '' ? 'bg-gray-700 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+          >
+            Všetci: <strong>{parts.length}</strong>
+          </button>
           {countByCat.map((c) => (
-            <div key={c.id} className="text-xs bg-gray-100 rounded px-3 py-1">{c.name}: <strong>{c.count}</strong></div>
+            <button
+              key={c.id}
+              onClick={() => setFilterCat(filterCat === c.id ? '' : c.id)}
+              className={`text-xs rounded px-3 py-1 transition-colors ${filterCat === c.id ? 'bg-gray-700 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+            >
+              {c.name}: <strong>{c.count}</strong>
+            </button>
           ))}
           {withoutCat > 0 && (
-            <div className="text-xs bg-amber-100 text-amber-700 rounded px-3 py-1">Bez kategórie (rozhodcovia): <strong>{withoutCat}</strong></div>
+            <button
+              onClick={() => setFilterCat(filterCat === '__none__' ? '' : '__none__')}
+              className={`text-xs rounded px-3 py-1 transition-colors ${filterCat === '__none__' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-700 hover:bg-amber-200'}`}
+            >
+              Bez kategórie (rozhodcovia): <strong>{withoutCat}</strong>
+            </button>
           )}
         </div>
 
@@ -240,15 +322,10 @@ export default function Registration() {
           </div>
         </form>
 
-        {/* Filters */}
+        {/* Search */}
         <div className="flex gap-3 mb-4">
           <input placeholder="Hľadaj..." value={search} onChange={(e) => setSearch(e.target.value)}
             className="border border-gray-300 rounded px-3 py-1.5 text-sm w-56" />
-          <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)}
-            className="border border-gray-300 rounded px-3 py-1.5 text-sm">
-            <option value="">Všetky</option>
-            {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
           <span className="text-sm text-gray-500 self-center">{filtered.length} záznamov</span>
         </div>
 
@@ -304,6 +381,57 @@ export default function Registration() {
           </tbody>
         </table>
       </div>
+
+      {/* Close registration confirmation modal */}
+      {closeRegModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 max-h-[90vh] flex flex-col">
+            <h2 className="font-bold text-lg mb-1">Uzavrieť registráciu?</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Po uzavretí registrácie bude možné pristúpiť k žrebovaniu políčok. Skontroluj zoznam prihlásených.
+            </p>
+            <div className="overflow-y-auto flex-1 border border-gray-200 rounded mb-4">
+              <table className="w-full text-sm border-collapse">
+                <thead className="sticky top-0 bg-gray-50">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">#</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Meno</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Bydlisko</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Kategória</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parts.filter((p) => p.entries.length > 0).map((p, i) => (
+                    <tr key={p.id} className="border-b border-gray-100">
+                      <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
+                      <td className="px-3 py-1.5">{p.firstName} {p.lastName}</td>
+                      <td className="px-3 py-1.5 text-gray-500">{p.city}</td>
+                      <td className="px-3 py-1.5 text-xs text-gray-600">{p.entries.map((e) => e.category.name).join(', ')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex gap-2 flex-wrap items-center justify-between">
+              <span className="text-sm text-gray-500">
+                Celkom súťažiacich: <strong>{parts.filter((p) => p.entries.length > 0).length}</strong>
+                {withoutCat > 0 && <span className="ml-3 text-amber-600">+ {withoutCat} rozhodcov (bez kategórie)</span>}
+              </span>
+              <div className="flex gap-2">
+                <button onClick={() => setCloseRegModal(false)}
+                  className="border border-gray-300 rounded px-4 py-2 text-sm hover:bg-gray-50">
+                  Zrušiť
+                </button>
+                <button onClick={handleCloseRegistration} disabled={statusLoading}
+                  className="bg-amber-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-amber-700 disabled:opacity-50">
+                  {statusLoading ? 'Uzatvárám…' : 'Uzavrieť registráciu'}
+                </button>
+              </div>
+            </div>
+            {statusError && <p className="text-xs text-red-600 mt-2">{statusError}</p>}
+          </div>
+        </div>
+      )}
 
       {/* Edit modal */}
       {editTarget && (
