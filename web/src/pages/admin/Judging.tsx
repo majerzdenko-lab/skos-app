@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, entries as entriesApi } from '../../api/endpoints';
-import type { Event, Category, EntryWithParticipant } from '../../api/endpoints';
+import type { Event, Category, EntryWithParticipant, EntryUpdate } from '../../api/endpoints';
 import { useEventSocket } from '../../hooks/useEventSocket';
 import Stopwatch from '../../components/Stopwatch';
 import PenaltyPicker from '../../components/PenaltyPicker';
@@ -52,7 +52,7 @@ export default function Judging() {
   });
 
   const updateEntry = useCallback(
-    async (entryId: string, data: Partial<EntryWithParticipant>) => {
+    async (entryId: string, data: EntryUpdate) => {
       const { data: updated } = await entriesApi.update(entryId, data);
       setEntryMap((prev) => {
         const next = { ...prev };
