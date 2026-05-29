@@ -8,6 +8,8 @@ export function useEventSocket(
     onEntryDrawn?: (data: { entryId: string; plotNumber: number }) => void;
     onEventStatus?: (data: { status: string }) => void;
     onCategoryClosed?: (data: { categoryId: string; results: unknown[] }) => void;
+    onEntryClaimed?: (data: { entryId: string; judge: { id: string; firstName: string | null; lastName: string | null } }) => void;
+    onEntryUnclaimed?: (data: { entryId: string; userId: string }) => void;
   }
 ) {
   const { socket, connect, joinEvent, leaveEvent } = useSocketStore();
@@ -24,6 +26,8 @@ export function useEventSocket(
     if (handlers.onEntryDrawn) socket.on('entry:drawn', handlers.onEntryDrawn);
     if (handlers.onEventStatus) socket.on('event:status', handlers.onEventStatus);
     if (handlers.onCategoryClosed) socket.on('category:closed', handlers.onCategoryClosed);
+    if (handlers.onEntryClaimed) socket.on('entry:claimed', handlers.onEntryClaimed);
+    if (handlers.onEntryUnclaimed) socket.on('entry:unclaimed', handlers.onEntryUnclaimed);
 
     return () => {
       leaveEvent(eventId);
@@ -31,6 +35,8 @@ export function useEventSocket(
       socket.off('entry:drawn');
       socket.off('event:status');
       socket.off('category:closed');
+      socket.off('entry:claimed');
+      socket.off('entry:unclaimed');
     };
   }, [eventId, socket]);
 }

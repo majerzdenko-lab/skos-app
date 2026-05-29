@@ -53,6 +53,13 @@ router.post('/', authenticate, validate(createEventSchema), async (req, res) => 
   res.status(201).json(event);
 });
 
+router.get('/:id/my-role', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
+  const eu = await prisma.eventUser.findUnique({
+    where: { userId_eventId: { userId: req.user!.id, eventId: req.params.id } },
+  });
+  res.json({ role: eu?.role ?? null });
+});
+
 router.get('/:id', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
   const event = await prisma.event.findUnique({ where: { id: req.params.id } });
   if (!event) {

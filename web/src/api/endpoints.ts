@@ -16,6 +16,7 @@ export const events = {
   create: (data: { name: string; date: string; location: string; edition?: number }) =>
     client.post<Event>('/api/events', data),
   get: (id: string) => client.get<Event>(`/api/events/${id}`),
+  getMyRole: (id: string) => client.get<{ role: Role }>(`/api/events/${id}/my-role`),
   update: (id: string, data: Partial<{ name: string; date: string; location: string; edition: number }>) =>
     client.patch<Event>(`/api/events/${id}`, data),
   setStatus: (id: string, status: EventStatus) =>
@@ -64,6 +65,12 @@ export const entries = {
     client.patch<Entry>(`/api/entries/${entryId}`, data),
   closeCategory: (eventId: string, catId: string) =>
     client.post(`/api/events/${eventId}/categories/${catId}/close`),
+  claim: (entryId: string) =>
+    client.post<{ ok: boolean; judges: EntryJudge[] }>(`/api/entries/${entryId}/claim`),
+  unclaim: (entryId: string, userId?: string) =>
+    client.delete(`/api/entries/${entryId}/claim`, { params: userId ? { userId } : {} }),
+  assignJudges: (eventId: string, catId: string) =>
+    client.post(`/api/events/${eventId}/categories/${catId}/assign-judges`),
 };
 
 // Teams
@@ -204,8 +211,15 @@ export interface Entry {
   totalTime?: number | null;
 }
 
+export interface EntryJudge {
+  id: string;
+  userId: string;
+  user: { id: string; firstName: string | null; lastName: string | null };
+}
+
 export interface EntryWithParticipant extends Entry {
   participant: Participant;
+  judges: EntryJudge[];
 }
 
 export interface EntryUpdate {

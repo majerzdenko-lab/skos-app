@@ -39,11 +39,13 @@ async function getEventRoleForEntry(userId: string, entryId: string): Promise<Ro
   return eu?.role ?? null;
 }
 
+const judgeInclude = { include: { user: { select: { id: true, firstName: true, lastName: true } } } };
+
 // GET /api/events/:id/categories/:catId/entries
 router.get('/events/:id/categories/:catId/entries', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
   const entries = await prisma.entry.findMany({
     where: { categoryId: req.params.catId, category: { eventId: req.params.id } },
-    include: { participant: true },
+    include: { participant: true, judges: judgeInclude },
     orderBy: { plotNumber: 'asc' },
   });
   res.json(entries);
@@ -156,6 +158,66 @@ router.patch('/entries/:entryId', authenticate, validate(entryUpdateSchema), asy
     .emit('entry:updated', { entryId: updated.id, baseTime: updated.baseTime, penalty: updated.penalty, totalTime });
 
   res.json({ ...updated, totalTime });
+});
+
+// POST /api/entries/:entryId/claim
+router.post('/entries/:entryId/claim', authenticate, async (req, res) => {
+  const role = await getEventRoleForEntry(req.user!.id, req.params.entryId);
+  if (!role || !['ADMIN', 'JUDGE'].includes(role)) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  try {
+    await prisma.entryJudge.create({ data: { entryId: req.params.entryId, userId: req.user!.id } });
+  } catch {
+    res.status(409).json({ error: 'Already claimed' });
+    return;
+  }
+  const entry = await prisma.entry.findUnique({
+    where: { id: req.params.entryId },
+    include: { category: true, judges: judgeInclude },
+  });
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { id: true, firstName: true, lastName: true } });
+  getIo().to(`event:${entry!.category.eventId}`).emit('entry:claimed', { entryId: req.params.entryId, judge: user });
+  res.json({ ok: true, judges: entry!.judges });
+});
+
+// DELETE /api/entries/:entryId/claim
+router.delete('/entries/:entryId/claim', authenticate, async (req, res) => {
+  const role = await getEventRoleForEntry(req.user!.id, req.params.entryId);
+  if (!role || !['ADMIN', 'JUDGE'].includes(role)) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+  const targetUserId = role === 'ADMIN' && req.query.userId ? (req.query.userId as string) : req.user!.id;
+  await prisma.entryJudge.deleteMany({ where: { entryId: req.params.entryId, userId: targetUserId } });
+  const entry = await prisma.entry.findUnique({ where: { id: req.params.entryId }, include: { category: true } });
+  getIo().to(`event:${entry!.category.eventId}`).emit('entry:unclaimed', { entryId: req.params.entryId, userId: targetUserId });
+  res.json({ ok: true });
+});
+
+// POST /api/events/:id/categories/:catId/assign-judges
+router.post('/events/:id/categories/:catId/assign-judges', authenticate, requireEventRole('ADMIN', 'REGISTRAR'), async (req, res) => {
+  const judges = await prisma.eventUser.findMany({
+    where: { eventId: req.params.id, role: 'JUDGE' },
+    select: { userId: true },
+  });
+  if (judges.length === 0) {
+    res.status(400).json({ error: 'Žiadni rozhodcovia nie sú priradení k tejto súťaži.' });
+    return;
+  }
+  const entries = await prisma.entry.findMany({
+    where: { categoryId: req.params.catId, category: { eventId: req.params.id } },
+    select: { id: true },
+    orderBy: { plotNumber: 'asc' },
+  });
+  await prisma.entryJudge.deleteMany({
+    where: { entry: { categoryId: req.params.catId, category: { eventId: req.params.id } } },
+  });
+  await prisma.entryJudge.createMany({
+    data: entries.map((e, i) => ({ entryId: e.id, userId: judges[i % judges.length].userId })),
+  });
+  res.json({ ok: true, assigned: entries.length, judges: judges.length });
 });
 
 // POST /api/events/:id/categories/:catId/close

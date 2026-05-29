@@ -88,7 +88,20 @@ model Entry {
   rank      Int?
   updatedAt DateTime @updatedAt
 
+  judges    EntryJudge[]
+
   @@unique([participantId, categoryId])
+}
+
+model EntryJudge {
+  id         String   @id @default(cuid())
+  entryId    String
+  entry      Entry    @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@unique([entryId, userId])
 }
 
 model Team {
@@ -128,8 +141,9 @@ model User {
   lastName     String?
   createdAt    DateTime @default(now())
 
-  eventRoles   EventUser[]
-  participants Participant[]
+  eventRoles       EventUser[]
+  participants     Participant[]
+  judgeAssignments EntryJudge[]
 }
 
 model EventUser {
