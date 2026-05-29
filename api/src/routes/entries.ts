@@ -282,7 +282,7 @@ router.post('/entries/:entryId/save-judge-time', authenticate, validate(saveJudg
 });
 
 // POST /api/events/:id/categories/:catId/close
-router.post('/events/:id/categories/:catId/close', authenticate, requireEventRole('ADMIN'), async (req, res) => {
+router.post('/events/:id/categories/:catId/close', authenticate, requireEventRole('ADMIN', 'REGISTRAR'), async (req, res) => {
   const entries = await prisma.entry.findMany({
     where: { categoryId: req.params.catId, category: { eventId: req.params.id } },
   });

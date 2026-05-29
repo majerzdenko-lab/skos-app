@@ -76,7 +76,7 @@ router.patch('/:id', authenticate, requireEventRole('ADMIN'), validate(updateEve
   res.json(event);
 });
 
-router.patch('/:id/status', authenticate, requireEventRole('ADMIN'), validate(statusSchema), async (req, res) => {
+router.patch('/:id/status', authenticate, requireEventRole('ADMIN', 'REGISTRAR'), validate(statusSchema), async (req, res) => {
   if (req.body.status === 'ACTIVE') {
     const cats = await prisma.category.findMany({
       where: { eventId: req.params.id, categoryType: 'INDIVIDUAL' },
@@ -85,6 +85,21 @@ router.patch('/:id/status', authenticate, requireEventRole('ADMIN'), validate(st
     const anyUndrawn = cats.some((c) => c.entries.some((e) => e.plotNumber == null));
     if (anyUndrawn) {
       res.status(400).json({ error: 'Všetky kategórie musia byť vyžrebované pred začatím súťaže.' });
+      return;
+    }
+  }
+  if (req.body.status === 'CLOSED') {
+    const cats = await prisma.category.findMany({
+      where: { eventId: req.params.id, scored: true },
+      include: { entries: { select: { rank: true, dnr: true, baseTime: true } } },
+    });
+    const openCats = cats.filter((c) =>
+      c.entries.length > 0 && c.entries.some((e) => !e.dnr && e.rank == null)
+    );
+    if (openCats.length > 0) {
+      res.status(400).json({
+        error: `Pred uzavretím súťaže musíte uzatvoriť všetky kategórie. Ešte otvorené: ${openCats.map((c) => c.name).join(', ')}.`,
+      });
       return;
     }
   }

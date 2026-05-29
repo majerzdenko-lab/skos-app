@@ -21,6 +21,7 @@ export default function Judging() {
   const [entryMap, setEntryMap] = useState<Record<string, EntryWithParticipant[]>>({});
   const [closedCats, setClosedCats] = useState<Set<string>>(new Set());
   const [closing, setClosing] = useState(false);
+  const [closeError, setCloseError] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [activeRaceEntryId, setActiveRaceEntryId] = useState<string | null>(null);
 
@@ -136,9 +137,17 @@ export default function Judging() {
     const confirmed = confirm('Uzatvoriť kategóriu? Táto akcia je nevratná.');
     if (!confirmed) return;
     setClosing(true);
+    setCloseError('');
     try {
       await entriesApi.closeCategory(id, activeCat);
       setClosedCats((prev) => new Set([...prev, activeCat]));
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string; count?: number } } })?.response?.data;
+      if (msg?.count) {
+        setCloseError(`Ešte ${msg.count} ${msg.count === 1 ? 'účastník nemá' : msg.count < 5 ? 'účastníci nemajú' : 'účastníkov nemá'} vyplnený základný čas ani DNR.`);
+      } else {
+        setCloseError(msg?.error ?? 'Chyba pri uzatváraní kategórie.');
+      }
     } finally {
       setClosing(false);
     }
@@ -211,6 +220,19 @@ export default function Judging() {
                 )}
               </div>
             </div>
+
+            {closeError && (
+              <div className="mb-3 bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded flex items-start gap-2">
+                <span className="shrink-0">⚠️</span>
+                <span>{closeError}</span>
+              </div>
+            )}
+            {!isJudge && !isClosed && !canClose && currentEntries.length > 0 && (
+              <div className="mb-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-3 py-2 rounded">
+                Kategóriu možno uzatvoriť až keď má každý účastník vyplnený <strong>základný čas</strong> alebo je označený ako <strong>DNR</strong>.
+                {' '}Chýba u {currentEntries.filter((e) => !e.dnr && e.baseTime == null).length} z {currentEntries.length} účastníkov.
+              </div>
+            )}
 
             {/* ── JUDGE VIEW ────────────────────────────────────── */}
             {isJudge ? (
