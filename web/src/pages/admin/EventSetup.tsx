@@ -333,22 +333,52 @@ export default function EventSetup() {
         )}
 
         {tab === 'info' && (
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-600">
             <p>Dátum: {event.date ? new Date(event.date).toLocaleDateString('sk-SK') : '—'}</p>
             <p>Miesto: {event.location}</p>
             {event.edition && <p>Ročník: {event.edition}</p>}
-            <p className="mt-4">
-              Verejná registrácia:{' '}
-              <code className="bg-gray-100 px-1 rounded text-xs">/events/{id}/register</code>
-            </p>
-            <p>
-              Verejné výsledky:{' '}
-              <code className="bg-gray-100 px-1 rounded text-xs">/events/{id}/results</code>
-            </p>
+            <div className="mt-5 space-y-3">
+              <UrlBox label="Verejná registrácia" path={`/events/${id}/register`} />
+              <UrlBox label="Verejné výsledky" path={`/events/${id}/results`} />
+            </div>
           </div>
         )}
       </div>
     </Layout>
+  );
+}
+
+function UrlBox({ label, path }: { label: string; path: string }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}${path}`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div>
+      <p className="text-xs text-gray-400 mb-1">{label}</p>
+      <div className="flex items-center gap-2">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-mono text-xs bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-blue-700 hover:bg-blue-50 hover:border-blue-200 truncate max-w-lg"
+        >
+          {url}
+        </a>
+        <button
+          onClick={handleCopy}
+          className="text-xs border border-gray-200 rounded px-2 py-1.5 hover:bg-gray-50 shrink-0 text-gray-500"
+        >
+          {copied ? '✓ Skopírované' : 'Kopírovať'}
+        </button>
+      </div>
+    </div>
   );
 }
 
