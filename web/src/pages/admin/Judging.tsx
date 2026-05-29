@@ -7,7 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import Stopwatch from '../../components/Stopwatch';
 import PenaltyPicker from '../../components/PenaltyPicker';
 import TimeInput from '../../components/TimeInput';
-import JudgeStopwatch from '../../components/JudgeStopwatch';
+import JudgeRaceScreen from '../../components/JudgeRaceScreen';
 import { centisecondsToDisplay } from '../../utils/time';
 import Layout from '../../components/Layout';
 
@@ -22,6 +22,7 @@ export default function Judging() {
   const [closedCats, setClosedCats] = useState<Set<string>>(new Set());
   const [closing, setClosing] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [activeRaceEntryId, setActiveRaceEntryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -214,16 +215,37 @@ export default function Judging() {
             {/* ── JUDGE VIEW ────────────────────────────────────── */}
             {isJudge ? (
               <div className="space-y-6">
+                {/* Fullscreen race overlay */}
+                {activeRaceEntryId && (() => {
+                  const entry = currentEntries.find((e) => e.id === activeRaceEntryId);
+                  if (!entry) return null;
+                  return (
+                    <JudgeRaceScreen
+                      plotNumber={entry.plotNumber}
+                      firstName={entry.participant.firstName}
+                      lastName={entry.participant.lastName}
+                      city={entry.participant.city}
+                      onSave={async (cs, pen) => {
+                        await entriesApi.saveJudgeTime(entry.id, { centiseconds: cs, penalty: pen });
+                        const { data } = await entriesApi.list(id!, activeCat);
+                        setEntryMap((prev) => ({ ...prev, [activeCat]: data.sort((a, b) => (a.plotNumber ?? 999) - (b.plotNumber ?? 999)) }));
+                        setActiveRaceEntryId(null);
+                      }}
+                      onBack={() => setActiveRaceEntryId(null)}
+                    />
+                  );
+                })()}
+
                 {/* My participants */}
                 <div>
-                  <h2 className="text-sm font-semibold text-green-800 bg-green-50 border border-green-200 rounded px-3 py-1.5 mb-3 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-green-800 bg-green-50 border border-green-200 rounded px-3 py-2 mb-3 flex items-center justify-between">
                     Moji účastníci
                     <span className="font-mono text-green-600">{myEntries.length}</span>
                   </h2>
                   {myEntries.length === 0 ? (
-                    <p className="text-sm text-gray-400 px-1">Zatiaľ žiadni. Prevezmite si účastníka nižšie.</p>
+                    <p className="text-sm text-gray-400 px-1 py-2">Zatiaľ žiadni. Prevezmite si účastníka nižšie.</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
                       {myEntries.map((entry) => {
                         const myJudgeRecord = entry.judges.find((j) => j.userId === currentUser?.id);
                         const isCompleted = myJudgeRecord?.completedAt != null;
@@ -231,30 +253,40 @@ export default function Judging() {
                         const judgeIndex = sortedJudges.findIndex((j) => j.userId === currentUser?.id);
                         const savedCs = judgeIndex === 0 ? entry.time1 : entry.time2;
                         return (
-                          <div key={entry.id} className={`border rounded-lg p-4 flex flex-col sm:flex-row sm:items-start gap-4 ${entry.dnr ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
-                            <div className="flex items-center gap-3 sm:w-48 shrink-0">
-                              <div className="font-mono font-bold text-2xl text-gray-700 w-10 text-center">{entry.plotNumber ?? '—'}</div>
-                              <div>
-                                <div className="font-semibold text-sm">{entry.participant.firstName} {entry.participant.lastName}</div>
-                                <div className="text-xs text-gray-400">{entry.participant.city}</div>
-                              </div>
+                          <div key={entry.id} className={`flex items-center gap-3 px-4 py-3 ${isCompleted ? 'bg-gray-50' : 'bg-white'}`}>
+                            <div className="font-mono font-bold text-xl text-gray-400 w-8 shrink-0 text-center">
+                              {entry.plotNumber ?? '—'}
                             </div>
-                            <div className="flex-1">
-                              <JudgeStopwatch
-                                savedCs={isCompleted ? savedCs ?? null : null}
-                                savedPenalty={entry.penalty}
-                                locked={isCompleted || isClosed}
-                                disabled={isClosed || entry.dnr}
-                                onSave={async (cs, pen) => {
-                                  await entriesApi.saveJudgeTime(entry.id, { centiseconds: cs, penalty: pen });
-                                  const { data } = await entriesApi.list(id!, activeCat);
-                                  setEntryMap((prev) => ({ ...prev, [activeCat]: data.sort((a, b) => (a.plotNumber ?? 999) - (b.plotNumber ?? 999)) }));
-                                }}
-                              />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm truncate">{entry.participant.firstName} {entry.participant.lastName}</div>
+                              <div className="text-xs text-gray-400">{entry.participant.city}</div>
                             </div>
-                            {!isCompleted && !isClosed && (
-                              <button onClick={() => handleUnclaim(entry.id)} className="text-xs text-gray-400 hover:text-red-500 shrink-0 self-start sm:self-center">Pustiť</button>
-                            )}
+                            <div className="shrink-0 flex items-center gap-2">
+                              {isCompleted ? (
+                                <div className="text-right">
+                                  <div className="font-mono text-sm font-semibold text-gray-700">{savedCs != null ? centisecondsToDisplay(savedCs) : '—'}</div>
+                                  {entry.penalty > 0 && <div className="text-xs text-amber-600">+{entry.penalty / 100} s</div>}
+                                  <div className="text-xs text-green-600 font-medium">✓ Hotovo</div>
+                                </div>
+                              ) : isClosed ? (
+                                <span className="text-xs text-gray-400">Uzatvorené</span>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => setActiveRaceEntryId(entry.id)}
+                                    className="bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm active:scale-95 transition-all"
+                                  >
+                                    ▶ Pretek
+                                  </button>
+                                  <button
+                                    onClick={() => handleUnclaim(entry.id)}
+                                    className="text-xs text-gray-300 hover:text-red-400 px-1"
+                                  >
+                                    ×
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -262,52 +294,40 @@ export default function Judging() {
                   )}
                 </div>
 
-                {/* Other entries - claim available */}
+                {/* Other entries - claim */}
                 {otherEntries.length > 0 && (
                   <div>
-                    <h2 className="text-sm font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-1.5 mb-2 flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-gray-500 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3 flex items-center justify-between">
                       Ostatní účastníci
                       <span className="font-mono text-gray-400">{otherEntries.length}</span>
                     </h2>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-gray-50 border-b border-gray-200 text-left text-gray-500">
-                            <th className="px-2 py-1.5 w-12">Políčko</th>
-                            <th className="px-2 py-1.5">Meno</th>
-                            <th className="px-2 py-1.5">Bydlisko</th>
-                            <th className="px-2 py-1.5">Rozhodcovia</th>
-                            <th className="px-2 py-1.5 w-24"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {otherEntries.map((entry) => (
-                            <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="px-2 py-1.5 font-mono">{entry.plotNumber ?? '—'}</td>
-                              <td className="px-2 py-1.5">{entry.participant.firstName} {entry.participant.lastName}</td>
-                              <td className="px-2 py-1.5 text-gray-400">{entry.participant.city}</td>
-                              <td className="px-2 py-1.5">
-                                <div className="flex flex-wrap gap-1">
-                                  {entry.judges.map((j) => (
-                                    <span key={j.userId} className={`rounded px-1 text-xs ${j.completedAt ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                                      {j.user.firstName} {j.user.lastName}{j.completedAt ? ' ✓' : ''}
-                                    </span>
-                                  ))}
-                                  {entry.judges.length === 0 && <span className="text-gray-300 text-xs">—</span>}
-                                </div>
-                              </td>
-                              <td className="px-2 py-1.5 text-right">
-                                {!isClosed && (
-                                  <button onClick={() => handleClaim(entry.id)}
-                                    className="text-xs bg-green-50 border border-green-300 text-green-700 rounded px-2 py-0.5 hover:bg-green-100">
-                                    Prebrať si
-                                  </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden">
+                      {otherEntries.map((entry) => (
+                        <div key={entry.id} className="flex items-center gap-3 px-4 py-3 bg-white">
+                          <div className="font-mono font-bold text-xl text-gray-300 w-8 shrink-0 text-center">
+                            {entry.plotNumber ?? '—'}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-sm truncate">{entry.participant.firstName} {entry.participant.lastName}</div>
+                            <div className="text-xs text-gray-400 flex flex-wrap gap-1 mt-0.5">
+                              {entry.judges.map((j) => (
+                                <span key={j.userId} className={`rounded px-1 ${j.completedAt ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                  {j.user.firstName} {j.user.lastName}{j.completedAt ? ' ✓' : ''}
+                                </span>
+                              ))}
+                              {entry.judges.length === 0 && <span className="text-gray-300">—</span>}
+                            </div>
+                          </div>
+                          {!isClosed && (
+                            <button
+                              onClick={() => handleClaim(entry.id)}
+                              className="shrink-0 text-sm border border-green-300 text-green-700 bg-green-50 px-3 py-1.5 rounded-xl hover:bg-green-100"
+                            >
+                              Prebrať si
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
