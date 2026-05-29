@@ -53,6 +53,8 @@ export const participants = {
     client.post(`/api/events/${eventId}/participants/${pid}/make-judge`, data),
   registerPublic: (eventId: string, data: PublicRegistrationInput) =>
     client.post(`/api/events/${eventId}/register-public`, data),
+  search: (q: string) =>
+    client.get<Array<{ firstName: string; lastName: string; city: string; dateOfBirth: string | null; email: string | null }>>(`/api/participants/search?q=${encodeURIComponent(q)}`),
 };
 
 // Entries

@@ -43,13 +43,21 @@ export default function Judging() {
   }, [activeCat, id, entryMap]);
 
   useEventSocket(id, {
-    onEntryUpdated: ({ entryId, baseTime, penalty, totalTime }) => {
+    onEntryUpdated: ({ entryId, time1, time2, baseTime, penalty, totalTime }) => {
       setEntryMap((prev) => {
         const next = { ...prev };
         for (const catId of Object.keys(next)) {
-          next[catId] = next[catId].map((e) =>
-            e.id === entryId ? { ...e, baseTime, penalty, totalTime: totalTime ?? undefined } : e
-          );
+          next[catId] = next[catId].map((e) => {
+            if (e.id !== entryId) return e;
+            return {
+              ...e,
+              ...(time1 !== undefined ? { time1 } : {}),
+              ...(time2 !== undefined ? { time2 } : {}),
+              baseTime,
+              penalty,
+              totalTime: totalTime ?? undefined,
+            };
+          });
         }
         return next;
       });
@@ -159,6 +167,19 @@ export default function Judging() {
   const isClosed = closedCats.has(activeCat);
   const canClose = currentEntries.length > 0 && currentEntries.every((e) => e.dnr || e.baseTime != null);
   const isJudge = myRole === 'JUDGE';
+
+  if (myRole === 'REGISTRAR') {
+    return (
+      <Layout>
+        <div className="max-w-xl mx-auto px-4 py-16 text-center">
+          <div className="text-4xl mb-4">🚫</div>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Nemáte prístup k tejto stránke</h2>
+          <p className="text-sm text-gray-400 mb-6">Stránka Súťaž je prístupná len rozhodcom a administrátorom.</p>
+          <Link to={`/events/${id}/setup`} className="text-sm text-green-700 hover:underline">← Späť na nastavenia</Link>
+        </div>
+      </Layout>
+    );
+  }
 
   const myEntries = isJudge ? currentEntries.filter((e) => e.judges.some((j) => j.userId === currentUser?.id)) : [];
   const otherEntries = isJudge ? currentEntries.filter((e) => !e.judges.some((j) => j.userId === currentUser?.id)) : [];

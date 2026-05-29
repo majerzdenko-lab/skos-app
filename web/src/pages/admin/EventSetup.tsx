@@ -206,14 +206,16 @@ export default function EventSetup() {
               Žrebovanie
             </Link>
           )}
-          <Link
-            to={`/events/${id}/judging`}
-            className={`pb-2 px-1 border-b-2 transition-colors ${
-              event.status === 'ACTIVE' ? 'border-green-500 text-green-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Súťaž
-          </Link>
+          {myRole !== 'REGISTRAR' && (
+            <Link
+              to={`/events/${id}/judging`}
+              className={`pb-2 px-1 border-b-2 transition-colors ${
+                event.status === 'ACTIVE' ? 'border-green-500 text-green-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Súťaž
+            </Link>
+          )}
           <Link to={`/events/${id}/results-admin`} className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Výsledky</Link>
         </div>
 

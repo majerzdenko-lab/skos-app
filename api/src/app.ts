@@ -63,6 +63,30 @@ export function createApp() {
     }
   );
 
+  // Cross-event participant search (for autocomplete in registration)
+  app.get('/api/participants/search', authenticate, async (req, res) => {
+    const q = ((req.query.q as string) ?? '').trim();
+    if (q.length < 2) { res.json([]); return; }
+    const userEvents = await prisma.eventUser.findMany({
+      where: { userId: req.user!.id, role: { in: ['ADMIN', 'REGISTRAR'] } },
+      select: { eventId: true },
+    });
+    const rows = await prisma.participant.findMany({
+      where: {
+        eventId: { in: userEvents.map((e) => e.eventId) },
+        OR: [
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: { firstName: true, lastName: true, city: true, dateOfBirth: true, email: true },
+      distinct: ['firstName', 'lastName', 'city'],
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      take: 8,
+    });
+    res.json(rows);
+  });
+
   // Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/events', eventRoutes);

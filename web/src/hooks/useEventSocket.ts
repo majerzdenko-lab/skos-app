@@ -4,7 +4,7 @@ import { useSocketStore } from '../stores/socketStore';
 export function useEventSocket(
   eventId: string | undefined,
   handlers: {
-    onEntryUpdated?: (data: { entryId: string; baseTime: number | null; penalty: number; totalTime: number | null }) => void;
+    onEntryUpdated?: (data: { entryId: string; time1?: number | null; time2?: number | null; baseTime: number | null; penalty: number; totalTime: number | null }) => void;
     onEntryDrawn?: (data: { entryId: string; plotNumber: number }) => void;
     onEventStatus?: (data: { status: string }) => void;
     onCategoryClosed?: (data: { categoryId: string; results: unknown[] }) => void;
