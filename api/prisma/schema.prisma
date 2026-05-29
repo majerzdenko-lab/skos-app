@@ -24,6 +24,7 @@ model Event {
 enum EventStatus {
   SETUP
   REGISTRATION
+  DRAW
   ACTIVE
   CLOSED
 }

@@ -23,7 +23,7 @@ const updateEventSchema = z.object({
 });
 
 const statusSchema = z.object({
-  status: z.enum(['SETUP', 'REGISTRATION', 'ACTIVE', 'CLOSED']),
+  status: z.enum(['SETUP', 'REGISTRATION', 'DRAW', 'ACTIVE', 'CLOSED']),
 });
 
 router.get('/', authenticate, async (req, res) => {
@@ -70,6 +70,17 @@ router.patch('/:id', authenticate, requireEventRole('ADMIN'), validate(updateEve
 });
 
 router.patch('/:id/status', authenticate, requireEventRole('ADMIN'), validate(statusSchema), async (req, res) => {
+  if (req.body.status === 'ACTIVE') {
+    const cats = await prisma.category.findMany({
+      where: { eventId: req.params.id, categoryType: 'INDIVIDUAL' },
+      include: { entries: { select: { plotNumber: true } } },
+    });
+    const anyUndrawn = cats.some((c) => c.entries.some((e) => e.plotNumber == null));
+    if (anyUndrawn) {
+      res.status(400).json({ error: 'Všetky kategórie musia byť vyžrebované pred začatím súťaže.' });
+      return;
+    }
+  }
   const event = await prisma.event.update({
     where: { id: req.params.id },
     data: { status: req.body.status },

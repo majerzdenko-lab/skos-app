@@ -54,7 +54,7 @@ async function main() {
         date: new Date('2026-07-15T09:00:00'),
         location: 'Liptovský Mikuláš',
         edition: 12,
-        status: 'ACTIVE',
+        status: 'DRAW',
       },
     });
 

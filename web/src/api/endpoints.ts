@@ -104,7 +104,7 @@ export const publicApi = {
 };
 
 // Types
-export type EventStatus = 'SETUP' | 'REGISTRATION' | 'ACTIVE' | 'CLOSED';
+export type EventStatus = 'SETUP' | 'REGISTRATION' | 'DRAW' | 'ACTIVE' | 'CLOSED';
 export type Role = 'ADMIN' | 'REGISTRAR' | 'JUDGE' | 'COMPETITOR';
 export type CategoryType = 'INDIVIDUAL' | 'TEAM';
 

@@ -4,12 +4,26 @@ import { events as eventsApi, categories as categoriesApi, users as usersApi } f
 import type { Event, Category, EventUser } from '../../api/endpoints';
 import Layout from '../../components/Layout';
 
-const STATUS_FLOW = ['SETUP', 'REGISTRATION', 'ACTIVE', 'CLOSED'] as const;
+const STATUS_FLOW = ['SETUP', 'REGISTRATION', 'DRAW', 'ACTIVE', 'CLOSED'] as const;
 const STATUS_LABELS: Record<string, string> = {
   SETUP: 'Príprava',
   REGISTRATION: 'Registrácia',
+  DRAW: 'Žrebovanie',
   ACTIVE: 'Prebieha',
   CLOSED: 'Uzatvorené',
+};
+const STATUS_NEXT_LABEL: Record<string, string> = {
+  SETUP: 'Otvoriť registráciu',
+  REGISTRATION: 'Uzatvoriť registráciu',
+  DRAW: 'Začať súťaž',
+  ACTIVE: 'Uzatvoriť súťaž',
+};
+const STATUS_HINT: Record<string, string> = {
+  SETUP: 'Nastavte kategórie a pridajte rozhodcov. Keď ste pripravení, otvorte registráciu.',
+  REGISTRATION: 'Registrácia je otvorená — účastníci sa môžu prihlásiť online aj na mieste. Po uzavretí registrácie pokračujete žrebovaním.',
+  DRAW: 'Registrácia je uzavretá. Vyžrebujte políčka pre každú kategóriu. Keď sú všetky vyžrebované, môžete začať súťaž.',
+  ACTIVE: 'Súťaž prebieha. Rozhodcovia zapisujú časy. Po ukončení všetkých kategórií uzatvorte súťaž.',
+  CLOSED: 'Súťaž je ukončená. Výsledky sú dostupné verejnosti.',
 };
 
 export default function EventSetup() {
@@ -30,14 +44,6 @@ export default function EventSetup() {
     categoriesApi.list(id).then((r) => setCats(r.data));
     usersApi.list(id).then((r) => setUsers(r.data)).catch(() => {});
   }, [id]);
-
-  const advanceStatus = async () => {
-    if (!event || !id) return;
-    const next = STATUS_FLOW[STATUS_FLOW.indexOf(event.status as typeof STATUS_FLOW[number]) + 1];
-    if (!next) return;
-    const { data } = await eventsApi.setStatus(id, next);
-    setEvent(data);
-  };
 
   const handleLoadTemplate = async () => {
     if (!id) return;
@@ -80,7 +86,30 @@ export default function EventSetup() {
 
   if (!event) return <Layout><div className="p-8 text-gray-400">Načítavanie...</div></Layout>;
 
+  const [advanceError, setAdvanceError] = useState('');
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(event.status as typeof STATUS_FLOW[number]) + 1];
+
+  const handleAdvanceStatus = async () => {
+    if (!event || !id) return;
+    const next = STATUS_FLOW[STATUS_FLOW.indexOf(event.status as typeof STATUS_FLOW[number]) + 1];
+    if (!next) return;
+    try {
+      setAdvanceError('');
+      const { data } = await eventsApi.setStatus(id, next);
+      setEvent(data);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setAdvanceError(msg ?? 'Chyba pri zmene stavu.');
+    }
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    SETUP: 'bg-gray-100 text-gray-700',
+    REGISTRATION: 'bg-blue-100 text-blue-700',
+    DRAW: 'bg-amber-100 text-amber-700',
+    ACTIVE: 'bg-green-100 text-green-700',
+    CLOSED: 'bg-slate-100 text-slate-600',
+  };
 
   return (
     <Layout>
@@ -88,28 +117,57 @@ export default function EventSetup() {
         <div className="flex items-center gap-3 mb-1">
           <Link to="/dashboard" className="text-sm text-gray-400 hover:text-gray-700">← Podujatia</Link>
         </div>
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between mb-2">
           <div>
             <h1 className="text-2xl font-bold">{event.name}</h1>
-            <p className="text-sm text-gray-500">{event.location}</p>
+            <p className="text-sm text-gray-500">{event.location} · {event.date ? new Date(event.date).toLocaleDateString('sk-SK') : ''}</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[event.status]}`}>
               {STATUS_LABELS[event.status]}
             </span>
             {nextStatus && (
               <button
-                onClick={advanceStatus}
+                onClick={handleAdvanceStatus}
                 className="bg-green-700 text-white px-3 py-1.5 rounded text-sm hover:bg-green-800"
               >
-                → {STATUS_LABELS[nextStatus]}
+                → {STATUS_NEXT_LABEL[event.status] ?? STATUS_LABELS[nextStatus]}
               </button>
             )}
           </div>
         </div>
 
+        {/* Status hint */}
+        <p className="text-sm text-gray-500 mb-5">{STATUS_HINT[event.status]}</p>
+        {advanceError && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded">
+            {advanceError}
+          </div>
+        )}
+
+        {/* Workflow steps */}
+        <div className="flex items-center gap-1 mb-6 text-xs">
+          {STATUS_FLOW.map((s, i) => {
+            const idx = STATUS_FLOW.indexOf(event.status as typeof STATUS_FLOW[number]);
+            const done = i < idx;
+            const active = i === idx;
+            return (
+              <span key={s} className="flex items-center gap-1">
+                {i > 0 && <span className="text-gray-300 mx-0.5">›</span>}
+                <span className={`px-2 py-0.5 rounded-full font-medium ${
+                  active ? STATUS_COLORS[s] :
+                  done ? 'bg-gray-100 text-gray-400 line-through' :
+                  'text-gray-300'
+                }`}>
+                  {STATUS_LABELS[s]}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+
         {/* Navigation links */}
-        <div className="flex gap-4 mb-6 text-sm border-b border-gray-200">
+        <div className="flex flex-wrap gap-4 mb-6 text-sm border-b border-gray-200">
           {(['info', 'categories', 'users'] as const).map((t) => (
             <button
               key={t}
@@ -121,9 +179,30 @@ export default function EventSetup() {
               {t === 'info' ? 'Informácie' : t === 'categories' ? 'Kategórie' : 'Používatelia'}
             </button>
           ))}
-          <Link to={`/events/${id}/registration`} className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Registrácia</Link>
-          <Link to={`/events/${id}/draw`} className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Žrebovanie</Link>
-          <Link to={`/events/${id}/judging`} className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Rozhodcovia</Link>
+          <Link
+            to={`/events/${id}/registration`}
+            className={`pb-2 px-1 border-b-2 transition-colors ${
+              event.status === 'REGISTRATION' ? 'border-blue-500 text-blue-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Registrácia
+          </Link>
+          <Link
+            to={`/events/${id}/draw`}
+            className={`pb-2 px-1 border-b-2 transition-colors ${
+              event.status === 'DRAW' ? 'border-amber-500 text-amber-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Žrebovanie
+          </Link>
+          <Link
+            to={`/events/${id}/judging`}
+            className={`pb-2 px-1 border-b-2 transition-colors ${
+              event.status === 'ACTIVE' ? 'border-green-500 text-green-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Rozhodcovia
+          </Link>
           <Link to={`/events/${id}/results-admin`} className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Výsledky</Link>
         </div>
 

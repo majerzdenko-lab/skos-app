@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, entries as entriesApi } from '../../api/endpoints';
 import type { Event, Category, EntryWithParticipant } from '../../api/endpoints';
 import { useEventSocket } from '../../hooks/useEventSocket';
@@ -7,18 +7,27 @@ import Layout from '../../components/Layout';
 
 export default function Draw() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [activeCat, setActiveCat] = useState<string>('');
   const [entryMap, setEntryMap] = useState<Record<string, EntryWithParticipant[]>>({});
-  const [loadedCats, setLoadedCats] = useState<Set<string>>(new Set());
+  const [advancing, setAdvancing] = useState(false);
+  const [advanceError, setAdvanceError] = useState('');
 
   useEffect(() => {
     if (!id) return;
     eventsApi.get(id).then((r) => setEvent(r.data));
     categoriesApi.list(id).then((r) => {
+      const sorted = r.data.filter(c => c.categoryType === 'INDIVIDUAL');
       setCats(r.data);
-      if (r.data.length > 0) setActiveCat(r.data[0].id);
+      if (sorted.length > 0) setActiveCat(sorted[0].id);
+      // Load all individual categories upfront for progress tracking
+      sorted.forEach((cat) => {
+        entriesApi.list(id, cat.id).then((er) => {
+          setEntryMap((prev) => ({ ...prev, [cat.id]: er.data }));
+        });
+      });
     });
   }, [id]);
 
@@ -33,14 +42,6 @@ export default function Draw() {
       });
     },
   });
-
-  useEffect(() => {
-    if (!id || !activeCat || loadedCats.has(activeCat)) return;
-    entriesApi.list(id, activeCat).then((r) => {
-      setEntryMap((prev) => ({ ...prev, [activeCat]: r.data }));
-      setLoadedCats((prev) => new Set([...prev, activeCat]));
-    });
-  }, [activeCat, id, loadedCats]);
 
   const currentEntries = entryMap[activeCat] ?? [];
 
@@ -61,26 +62,100 @@ export default function Draw() {
     }));
   };
 
+  const handleStartCompetition = async () => {
+    if (!id) return;
+    setAdvancing(true);
+    setAdvanceError('');
+    try {
+      await eventsApi.setStatus(id, 'ACTIVE');
+      navigate(`/events/${id}/judging`);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setAdvanceError(msg ?? 'Chyba pri spustení súťaže.');
+      setAdvancing(false);
+    }
+  };
+
+  const individualCats = cats.filter((c) => c.categoryType === 'INDIVIDUAL');
+
+  const drawnCount = (catId: string) => {
+    const entries = entryMap[catId];
+    if (!entries) return null;
+    return { drawn: entries.filter((e) => e.plotNumber != null).length, total: entries.length };
+  };
+
+  const allDrawn = individualCats.length > 0 && individualCats.every((c) => {
+    const prog = drawnCount(c.id);
+    return prog !== null && prog.drawn === prog.total && prog.total > 0;
+  });
+
+  const allLoaded = individualCats.every((c) => entryMap[c.id] !== undefined);
+
   return (
     <Layout>
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-1">
           <Link to={`/events/${id}/setup`} className="text-sm text-gray-400 hover:text-gray-700">← Nastavenia</Link>
         </div>
-        <h1 className="text-2xl font-bold mb-6">{event?.name} — Žrebovanie</h1>
+        <div className="flex items-start justify-between mb-6">
+          <h1 className="text-2xl font-bold">{event?.name} — Žrebovanie</h1>
+        </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          {cats.map((c) => (
+        {/* All drawn banner */}
+        {allLoaded && allDrawn && event?.status === 'DRAW' && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-green-800 font-medium text-sm">Všetky kategórie sú vyžrebované.</p>
+              <p className="text-green-600 text-xs">Môžete spustiť súťaž a rozhodcovia môžu začať zapisovať časy.</p>
+            </div>
             <button
-              key={c.id}
-              onClick={() => setActiveCat(c.id)}
-              className={`px-3 py-1.5 rounded text-sm border ${
-                activeCat === c.id ? 'bg-green-700 text-white border-green-700' : 'bg-white border-gray-300 hover:bg-gray-50'
-              }`}
+              onClick={handleStartCompetition}
+              disabled={advancing}
+              className="bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800 disabled:opacity-50 ml-4 whitespace-nowrap"
             >
-              {c.name}
+              {advancing ? 'Spúšťam…' : 'Začať súťaž →'}
             </button>
-          ))}
+          </div>
+        )}
+
+        {allLoaded && !allDrawn && event?.status === 'DRAW' && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 rounded px-4 py-2 text-sm text-amber-800">
+            Vyžrebujte políčka vo všetkých kategóriách — potom môžete spustiť súťaž.
+          </div>
+        )}
+
+        {advanceError && (
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded">
+            {advanceError}
+          </div>
+        )}
+
+        {/* Category tabs */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          {individualCats.map((c) => {
+            const prog = drawnCount(c.id);
+            const done = prog !== null && prog.drawn === prog.total && prog.total > 0;
+            return (
+              <button
+                key={c.id}
+                onClick={() => setActiveCat(c.id)}
+                className={`px-3 py-1.5 rounded text-sm border flex items-center gap-1.5 ${
+                  activeCat === c.id
+                    ? 'bg-green-700 text-white border-green-700'
+                    : done
+                    ? 'bg-green-50 border-green-300 text-green-700'
+                    : 'bg-white border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {c.name}
+                {prog !== null && (
+                  <span className={`text-xs font-mono ${activeCat === c.id ? 'text-green-200' : done ? 'text-green-600' : 'text-gray-400'}`}>
+                    {done ? '✓' : `${prog.drawn}/${prog.total}`}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {activeCat && (
