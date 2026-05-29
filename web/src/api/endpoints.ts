@@ -21,6 +21,7 @@ export const events = {
     client.patch<Event>(`/api/events/${id}`, data),
   setStatus: (id: string, status: EventStatus) =>
     client.patch<Event>(`/api/events/${id}/status`, { status }),
+  delete: (id: string) => client.delete(`/api/events/${id}`),
   getPublic: (id: string) => client.get<PublicEvent>(`/api/events/${id}/public`),
   registrationOpen: (id: string) => client.get<{ open: boolean }>(`/api/events/${id}/registration-open`),
 };

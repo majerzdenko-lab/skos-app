@@ -126,4 +126,14 @@ router.patch('/:id/status', authenticate, requireEventRole('ADMIN', 'REGISTRAR')
   res.json(event);
 });
 
+router.delete('/:id', authenticate, async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { systemRole: true } });
+  if (user?.systemRole !== 'ADMIN') {
+    res.status(403).json({ error: 'Len systémový administrátor môže vymazať podujatie.' });
+    return;
+  }
+  await prisma.event.delete({ where: { id: req.params.id } });
+  res.json({ ok: true });
+});
+
 export default router;

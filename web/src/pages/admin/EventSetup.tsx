@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, users as usersApi } from '../../api/endpoints';
 import type { Event, Category, EventUser, Role } from '../../api/endpoints';
 import { useAuthStore } from '../../stores/authStore';
@@ -29,6 +29,7 @@ const STATUS_HINT: Record<string, string> = {
 
 export default function EventSetup() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
   const [event, setEvent] = useState<Event | null>(null);
   const [myRole, setMyRole] = useState<Role | null>(null);
@@ -41,6 +42,7 @@ export default function EventSetup() {
   const [inviteRole, setInviteRole] = useState<'REGISTRAR' | 'JUDGE' | 'COMPETITOR'>('JUDGE');
   const [dragging, setDragging] = useState<string | null>(null);
   const [advanceError, setAdvanceError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -50,8 +52,15 @@ export default function EventSetup() {
     usersApi.list(id).then((r) => setUsers(r.data)).catch(() => {});
   }, [id]);
 
+  const isSystemAdmin = currentUser?.systemRole === 'ADMIN';
   const isJudge = myRole === 'JUDGE';
   const canEdit = myRole === 'ADMIN' || myRole === 'REGISTRAR';
+
+  const handleDelete = async () => {
+    if (!id) return;
+    await eventsApi.delete(id);
+    navigate('/dashboard');
+  };
 
   const handleLoadTemplate = async () => {
     if (!id) return;
@@ -365,6 +374,33 @@ export default function EventSetup() {
               <UrlBox label="Verejná registrácia" path={`/events/${id}/register`} />
               <UrlBox label="Verejné výsledky" path={`/events/${id}/results`} />
             </div>
+            {isSystemAdmin && (
+              <div className="mt-10 pt-6 border-t border-red-100">
+                {!deleteConfirm ? (
+                  <button
+                    onClick={() => setDeleteConfirm(true)}
+                    className="text-sm text-red-500 border border-red-200 rounded px-4 py-2 hover:bg-red-50"
+                  >
+                    Vymazať podujatie…
+                  </button>
+                ) : (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-w-sm">
+                    <p className="text-sm font-medium text-red-800 mb-1">Naozaj vymazať <strong>{event.name}</strong>?</p>
+                    <p className="text-xs text-red-600 mb-4">Vymaže sa podujatie aj všetci účastníci, kategórie a výsledky. Táto akcia je nevratná.</p>
+                    <div className="flex gap-2">
+                      <button onClick={handleDelete}
+                        className="bg-red-600 text-white text-sm px-4 py-1.5 rounded hover:bg-red-700">
+                        Áno, vymazať
+                      </button>
+                      <button onClick={() => setDeleteConfirm(false)}
+                        className="border border-gray-300 text-sm px-4 py-1.5 rounded hover:bg-gray-50">
+                        Zrušiť
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
