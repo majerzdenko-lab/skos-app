@@ -38,6 +38,8 @@ export const categories = {
     client.post(`/api/events/${eventId}/categories/reorder`, { ids }),
   loadTemplate: (eventId: string) =>
     client.post<Category[]>(`/api/events/${eventId}/categories/load-template`),
+  saveTemplate: (eventId: string) =>
+    client.post<{ ok: boolean; count: number }>(`/api/events/${eventId}/categories/save-template`),
 };
 
 // Participants

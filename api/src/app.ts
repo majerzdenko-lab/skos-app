@@ -45,21 +45,45 @@ export function createApp() {
   // Health check (no auth)
   app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
-  // Default category template endpoint
+  // Load category template
   app.post(
     '/api/events/:id/categories/load-template',
     authenticate,
     requireEventRole('ADMIN'),
     async (req, res) => {
+      const setting = await prisma.setting.findUnique({ where: { key: 'category_template' } });
+      const template = setting ? JSON.parse(setting.value) : defaultCategories;
       const existing = await prisma.category.count({ where: { eventId: req.params.id } });
       const created = await prisma.$transaction(
-        defaultCategories.map((cat, i) =>
+        template.map((cat: typeof defaultCategories[0], i: number) =>
           prisma.category.create({
             data: { ...cat, eventId: req.params.id, order: existing + i },
           })
         )
       );
       res.status(201).json(created);
+    }
+  );
+
+  // Save current event's categories as template
+  app.post(
+    '/api/events/:id/categories/save-template',
+    authenticate,
+    requireEventRole('ADMIN'),
+    async (req, res) => {
+      const cats = await prisma.category.findMany({
+        where: { eventId: req.params.id },
+        orderBy: { order: 'asc' },
+      });
+      const template = cats.map(({ name, plotDimensions, plotCount, categoryType, scored }) => ({
+        name, plotDimensions, plotCount, categoryType, scored,
+      }));
+      await prisma.setting.upsert({
+        where: { key: 'category_template' },
+        update: { value: JSON.stringify(template) },
+        create: { key: 'category_template', value: JSON.stringify(template) },
+      });
+      res.json({ ok: true, count: template.length });
     }
   );
 

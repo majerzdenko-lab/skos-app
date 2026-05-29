@@ -59,6 +59,11 @@ export default function EventSetup() {
     setCats((prev) => [...prev, ...data]);
   };
 
+  const handleSaveTemplate = async () => {
+    if (!id) return;
+    await categoriesApi.saveTemplate(id);
+  };
+
   const handleDeleteCat = async (catId: string) => {
     if (!id) return;
     await categoriesApi.delete(id, catId);
@@ -233,7 +238,15 @@ export default function EventSetup() {
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-semibold">Kategórie</h2>
               {canEdit && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  {cats.length > 0 && (
+                    <button
+                      onClick={async () => { await handleSaveTemplate(); alert('Šablóna uložená.'); }}
+                      className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50"
+                    >
+                      Uložiť ako šablónu
+                    </button>
+                  )}
                   <button onClick={handleLoadTemplate} className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50">
                     Načítaj šablónu
                   </button>
@@ -423,20 +436,43 @@ function CategoryForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end p-3 bg-gray-50 rounded border border-gray-200 mb-2">
-      <input required placeholder="Názov" value={name} onChange={(e) => setName(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm w-48" />
-      <input required placeholder="Rozmery (napr. 10×1,8 m)" value={plotDimensions} onChange={(e) => setPlotDimensions(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm w-36" />
-      <input required type="number" min={1} placeholder="Počet políčok" value={plotCount} onChange={(e) => setPlotCount(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-sm w-28" />
-      <select value={categoryType} onChange={(e) => setCategoryType(e.target.value as 'INDIVIDUAL' | 'TEAM')} className="border border-gray-300 rounded px-2 py-1 text-sm">
-        <option value="INDIVIDUAL">Jednotlivci</option>
-        <option value="TEAM">Tímy</option>
-      </select>
-      <label className="flex items-center gap-1 text-sm">
-        <input type="checkbox" checked={scored} onChange={(e) => setScored(e.target.checked)} />
-        Hodnotená
-      </label>
-      <button type="submit" className="bg-green-700 text-white px-3 py-1 rounded text-sm hover:bg-green-800">Uložiť</button>
-      <button type="button" onClick={onCancel} className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-100">Zrušiť</button>
+    <form onSubmit={handleSubmit} className="p-4 bg-gray-50 rounded border border-gray-200 mb-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
+        <div className="lg:col-span-2">
+          <label className="text-xs text-gray-500 block mb-1">Názov kategórie</label>
+          <input required value={name} onChange={(e) => setName(e.target.value)}
+            className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full" placeholder="napr. Ženy Profi" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Rozmery políčka</label>
+          <input required value={plotDimensions} onChange={(e) => setPlotDimensions(e.target.value)}
+            className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full" placeholder="napr. 10×1,8 m" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Počet políčok</label>
+          <input required type="number" min={1} value={plotCount} onChange={(e) => setPlotCount(e.target.value)}
+            className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Typ</label>
+          <select value={categoryType} onChange={(e) => setCategoryType(e.target.value as 'INDIVIDUAL' | 'TEAM')}
+            className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full">
+            <option value="INDIVIDUAL">Jednotlivci</option>
+            <option value="TEAM">Tímy</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">Hodnotená</label>
+          <label className="flex items-center gap-2 h-8 text-sm cursor-pointer">
+            <input type="checkbox" checked={scored} onChange={(e) => setScored(e.target.checked)} />
+            Áno
+          </label>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" className="bg-green-700 text-white px-4 py-1.5 rounded text-sm hover:bg-green-800">Uložiť</button>
+        <button type="button" onClick={onCancel} className="border border-gray-300 px-4 py-1.5 rounded text-sm hover:bg-gray-100">Zrušiť</button>
+      </div>
     </form>
   );
 }
