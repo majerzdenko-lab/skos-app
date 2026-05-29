@@ -111,6 +111,19 @@ export function createApp() {
     res.json(rows);
   });
 
+  // Promote self to system admin (protected by secret token from env)
+  app.post('/api/admin/promote', async (req, res) => {
+    const secret = req.headers['x-admin-secret'];
+    if (!secret || secret !== process.env.ADMIN_PROMOTE_SECRET) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+    const { email } = req.body as { email: string };
+    if (!email) { res.status(400).json({ error: 'email required' }); return; }
+    const user = await prisma.user.update({ where: { email }, data: { systemRole: 'ADMIN' } });
+    res.json({ ok: true, id: user.id, email: user.email, systemRole: user.systemRole });
+  });
+
   // Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/events', eventRoutes);

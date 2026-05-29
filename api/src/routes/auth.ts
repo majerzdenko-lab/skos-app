@@ -29,9 +29,10 @@ router.post('/register', validate(registerSchema), async (req, res) => {
     return;
   }
 
+  const userCount = await prisma.user.count();
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { email, passwordHash, firstName, lastName },
+    data: { email, passwordHash, firstName, lastName, systemRole: userCount === 0 ? 'ADMIN' : 'USER' },
   });
 
   res.status(201).json({ id: user.id, email: user.email });
@@ -66,7 +67,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 
   res.json({
     accessToken,
-    user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName },
+    user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, systemRole: user.systemRole },
   });
 });
 

@@ -141,6 +141,7 @@ model User {
   passwordHash String?
   firstName    String?
   lastName     String?
+  systemRole   String   @default("USER")
   createdAt    DateTime @default(now())
 
   eventRoles       EventUser[]

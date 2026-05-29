@@ -128,6 +128,7 @@ export interface User {
   email: string;
   firstName: string | null;
   lastName: string | null;
+  systemRole: string;
 }
 
 export interface Event {

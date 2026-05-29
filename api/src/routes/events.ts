@@ -27,6 +27,12 @@ const statusSchema = z.object({
 });
 
 router.get('/', authenticate, async (req, res) => {
+  const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { systemRole: true } });
+  if (user?.systemRole === 'ADMIN') {
+    const events = await prisma.event.findMany({ orderBy: { date: 'desc' } });
+    res.json(events);
+    return;
+  }
   const userEventIds = await prisma.eventUser.findMany({
     where: { userId: req.user!.id },
     select: { eventId: true },

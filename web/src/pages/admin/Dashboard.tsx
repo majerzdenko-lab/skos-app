@@ -61,7 +61,10 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-2xl font-bold">Podujatia</h1>
-            <p className="text-sm text-gray-500">{user?.email}</p>
+            <p className="text-sm text-gray-500">
+              {user?.email}
+              {user?.systemRole === 'ADMIN' && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">Systémový administrátor</span>}
+            </p>
           </div>
           <div className="flex gap-3">
             <button
