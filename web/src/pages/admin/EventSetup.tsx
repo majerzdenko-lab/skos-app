@@ -175,10 +175,10 @@ export default function EventSetup() {
 
         {/* Navigation links */}
         <div className="flex flex-wrap gap-4 mb-6 text-sm border-b border-gray-200">
-          {(['info', 'categories', 'users'] as const).map((t) => (
+          {(['info', 'categories', ...(myRole === 'ADMIN' ? ['users'] : [])] as const).map((t) => (
             <button
               key={t}
-              onClick={() => setTab(t)}
+              onClick={() => setTab(t as typeof tab)}
               className={`pb-2 px-1 border-b-2 transition-colors ${
                 tab === t ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'
               }`}
