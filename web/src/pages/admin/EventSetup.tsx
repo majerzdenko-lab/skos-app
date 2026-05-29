@@ -43,6 +43,8 @@ export default function EventSetup() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [advanceError, setAdvanceError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [templateModal, setTemplateModal] = useState(false);
+  const [templatePreview, setTemplatePreview] = useState<Array<{ name: string; plotDimensions: string; plotCount: number; categoryType: string; scored: boolean }>>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -248,15 +250,19 @@ export default function EventSetup() {
               <h2 className="font-semibold">Kategórie</h2>
               {canEdit && (
                 <div className="flex gap-2 flex-wrap">
-                  {cats.length > 0 && (
-                    <button
-                      onClick={async () => { await handleSaveTemplate(); alert('Šablóna uložená.'); }}
-                      className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50"
-                    >
-                      Uložiť ako šablónu
-                    </button>
-                  )}
-                  <button onClick={handleLoadTemplate} className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50">
+                  <button
+                    onClick={async () => {
+                      if (!id) return;
+                      try {
+                        const { data } = await categoriesApi.templatePreview(id);
+                        setTemplatePreview(data);
+                      } catch {
+                        setTemplatePreview([]);
+                      }
+                      setTemplateModal(true);
+                    }}
+                    className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50"
+                  >
                     Načítaj šablónu
                   </button>
                   <button onClick={() => setNewCat(true)} className="bg-green-700 text-white text-sm px-3 py-1.5 rounded hover:bg-green-800">
@@ -271,7 +277,44 @@ export default function EventSetup() {
                 eventId={id!}
                 onSave={(cat) => { setCats((p) => [...p, cat]); setNewCat(false); }}
                 onCancel={() => setNewCat(false)}
+                onSaveTemplate={cats.length > 0 ? async () => { await handleSaveTemplate(); alert('Šablóna uložená.'); } : undefined}
               />
+            )}
+
+            {templateModal && (
+              <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6">
+                  <h3 className="font-semibold mb-4">Šablóna kategórií</h3>
+                  {templatePreview.length === 0 ? (
+                    <p className="text-sm text-gray-500 mb-5">Žiadna šablóna nie je uložená.</p>
+                  ) : (
+                    <div className="space-y-2 mb-5 max-h-80 overflow-y-auto">
+                      {templatePreview.map((cat, i) => (
+                        <div key={i} className="flex items-center justify-between border border-gray-200 rounded px-3 py-2 text-sm">
+                          <span className="font-medium">{cat.name}</span>
+                          <span className="text-xs text-gray-400">{cat.plotDimensions} · {cat.plotCount} políčok · {cat.categoryType === 'TEAM' ? 'Tímy' : 'Jednotlivci'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    {templatePreview.length > 0 && (
+                      <button
+                        onClick={async () => { await handleLoadTemplate(); setTemplateModal(false); }}
+                        className="bg-green-700 text-white px-4 py-1.5 rounded text-sm hover:bg-green-800"
+                      >
+                        Pridaj do podujatia
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setTemplateModal(false)}
+                      className="border border-gray-300 px-4 py-1.5 rounded text-sm hover:bg-gray-50"
+                    >
+                      Zavrieť
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
 
             <div className="space-y-2">
@@ -293,6 +336,7 @@ export default function EventSetup() {
                         setEditingCat(null);
                       }}
                       onCancel={() => setEditingCat(null)}
+                      onSaveTemplate={async () => { await handleSaveTemplate(); alert('Šablóna uložená.'); }}
                     />
                   ) : (
                     <>
@@ -447,11 +491,13 @@ function CategoryForm({
   existing,
   onSave,
   onCancel,
+  onSaveTemplate,
 }: {
   eventId: string;
   existing?: Category;
   onSave: (cat: Category) => void;
   onCancel: () => void;
+  onSaveTemplate?: () => void;
 }) {
   const [name, setName] = useState(existing?.name ?? '');
   const [plotDimensions, setPlotDimensions] = useState(existing?.plotDimensions ?? '');
@@ -505,8 +551,13 @@ function CategoryForm({
           </label>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <button type="submit" className="bg-green-700 text-white px-4 py-1.5 rounded text-sm hover:bg-green-800">Uložiť</button>
+        {onSaveTemplate && (
+          <button type="button" onClick={onSaveTemplate} className="border border-green-600 text-green-700 px-4 py-1.5 rounded text-sm hover:bg-green-50">
+            Uložiť ako šablónu
+          </button>
+        )}
         <button type="button" onClick={onCancel} className="border border-gray-300 px-4 py-1.5 rounded text-sm hover:bg-gray-100">Zrušiť</button>
       </div>
     </form>

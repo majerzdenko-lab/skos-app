@@ -45,6 +45,18 @@ export function createApp() {
   // Health check (no auth)
   app.get('/health', (_, res) => res.json({ status: 'ok' }));
 
+  // Preview template (no side effects)
+  app.get(
+    '/api/events/:id/categories/template-preview',
+    authenticate,
+    requireEventRole('ADMIN'),
+    async (req, res) => {
+      const setting = await prisma.setting.findUnique({ where: { key: 'category_template' } });
+      const template = setting ? JSON.parse(setting.value) : defaultCategories;
+      res.json(template);
+    }
+  );
+
   // Load category template
   app.post(
     '/api/events/:id/categories/load-template',

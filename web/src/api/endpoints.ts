@@ -41,6 +41,8 @@ export const categories = {
     client.post<Category[]>(`/api/events/${eventId}/categories/load-template`),
   saveTemplate: (eventId: string) =>
     client.post<{ ok: boolean; count: number }>(`/api/events/${eventId}/categories/save-template`),
+  templatePreview: (eventId: string) =>
+    client.get<Array<{ name: string; plotDimensions: string; plotCount: number; categoryType: string; scored: boolean }>>(`/api/events/${eventId}/categories/template-preview`),
 };
 
 // Participants
