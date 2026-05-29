@@ -194,7 +194,7 @@ export default function Judging() {
         <div className="flex items-center gap-3 mb-1">
           <Link to={`/events/${id}/setup`} className="text-sm text-gray-400 hover:text-gray-700">← Nastavenia</Link>
         </div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
           <h1 className="text-xl font-bold">{event?.name} — {isJudge ? 'Môj prehľad' : 'Rozhodcovia'}</h1>
         </div>
 

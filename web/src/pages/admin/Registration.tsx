@@ -227,7 +227,7 @@ export default function Registration() {
         <div className="flex items-center gap-3 mb-1">
           <Link to={`/events/${id}/setup`} className="text-sm text-gray-400 hover:text-gray-700">← Nastavenia</Link>
         </div>
-        <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
           <h1 className="text-2xl font-bold">{event?.name} — Registrácia</h1>
           <div className="flex flex-col items-end gap-2">
             {event?.status === 'REGISTRATION' && (
@@ -330,7 +330,8 @@ export default function Registration() {
         </div>
 
         {/* Participant list */}
-        <table className="w-full border-collapse text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-sm min-w-[600px]">
           <thead>
             <tr className="bg-gray-100 text-left border-b border-gray-300">
               <th className="px-3 py-2">Meno</th>
@@ -380,6 +381,7 @@ export default function Registration() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Close registration confirmation modal */}

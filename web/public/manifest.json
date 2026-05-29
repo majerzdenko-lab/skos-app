@@ -1,0 +1,14 @@
+{
+  "name": "SKoS — Kosecké podujatia",
+  "short_name": "SKoS",
+  "description": "Správa koseckých podujatí",
+  "icons": [
+    { "src": "/skos-logo.jpg", "sizes": "192x192", "type": "image/jpeg" },
+    { "src": "/skos-logo.jpg", "sizes": "512x512", "type": "image/jpeg" }
+  ],
+  "theme_color": "#15803d",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait"
+}

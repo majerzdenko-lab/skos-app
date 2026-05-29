@@ -129,19 +129,19 @@ export default function EventSetup() {
         <div className="flex items-center gap-3 mb-1">
           <Link to="/dashboard" className="text-sm text-gray-400 hover:text-gray-700">← Podujatia</Link>
         </div>
-        <div className="flex items-start justify-between mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
           <div>
             <h1 className="text-2xl font-bold">{event.name}</h1>
             <p className="text-sm text-gray-500">{event.location} · {event.date ? new Date(event.date).toLocaleDateString('sk-SK') : ''}</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[event.status]}`}>
               {STATUS_LABELS[event.status]}
             </span>
             {nextStatus && (
               <button
                 onClick={handleAdvanceStatus}
-                className="bg-green-700 text-white px-3 py-1.5 rounded text-sm hover:bg-green-800"
+                className="bg-green-700 text-white px-3 py-1.5 rounded text-sm hover:bg-green-800 whitespace-nowrap"
               >
                 → {STATUS_NEXT_LABEL[event.status] ?? STATUS_LABELS[nextStatus]}
               </button>
@@ -158,7 +158,7 @@ export default function EventSetup() {
         )}
 
         {/* Workflow steps */}
-        <div className="flex items-center gap-1 mb-6 text-xs">
+        <div className="flex flex-wrap items-center gap-1 mb-6 text-xs">
           {STATUS_FLOW.map((s, i) => {
             const idx = STATUS_FLOW.indexOf(event.status as typeof STATUS_FLOW[number]);
             const done = i < idx;

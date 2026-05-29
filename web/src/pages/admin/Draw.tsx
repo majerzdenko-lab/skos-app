@@ -97,7 +97,7 @@ export default function Draw() {
         <div className="flex items-center gap-3 mb-1">
           <Link to={`/events/${id}/setup`} className="text-sm text-gray-400 hover:text-gray-700">← Nastavenia</Link>
         </div>
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-6">
           <h1 className="text-2xl font-bold">{event?.name} — Žrebovanie</h1>
         </div>
 
@@ -170,11 +170,12 @@ export default function Draw() {
               </button>
             </div>
 
-            <table className="w-full border-collapse text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm min-w-[400px]">
               <thead>
                 <tr className="bg-gray-100 border-b border-gray-300 text-left">
                   <th className="px-3 py-2">Meno</th>
-                  <th className="px-3 py-2">Bydlisko</th>
+                  <th className="px-3 py-2 hidden sm:table-cell">Bydlisko</th>
                   <th className="px-3 py-2 w-32">Číslo políčka</th>
                 </tr>
               </thead>
@@ -184,7 +185,7 @@ export default function Draw() {
                     <td className="px-3 py-2">
                       {entry.participant.firstName} {entry.participant.lastName}
                     </td>
-                    <td className="px-3 py-2 text-gray-500">{entry.participant.city}</td>
+                    <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{entry.participant.city}</td>
                     <td className="px-3 py-2">
                       <input
                         type="number"
@@ -200,6 +201,7 @@ export default function Draw() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </div>
