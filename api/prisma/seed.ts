@@ -20,11 +20,16 @@ function dob(minY: number, maxY: number): string {
   return `${d}.${m}.${y}`;
 }
 
-async function upsertUser(email: string, password: string, firstName: string, lastName: string) {
+async function upsertUser(email: string, password: string, firstName: string, lastName: string, systemRole = 'USER') {
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return existing;
+  if (existing) {
+    if (systemRole === 'ADMIN' && existing.systemRole !== 'ADMIN') {
+      return prisma.user.update({ where: { email }, data: { systemRole } });
+    }
+    return existing;
+  }
   const passwordHash = await bcrypt.hash(password, 12);
-  return prisma.user.create({ data: { email, passwordHash, firstName, lastName } });
+  return prisma.user.create({ data: { email, passwordHash, firstName, lastName, systemRole } });
 }
 
 async function upsertEventUser(userId: string, eventId: string, role: Role) {
@@ -37,7 +42,7 @@ async function upsertEventUser(userId: string, eventId: string, role: Role) {
 
 async function main() {
   // ── Používatelia ──────────────────────────────────────────────────
-  const admin      = await upsertUser('majerzdenko@gmail.com', 'SKoStest123',    'Zdenko',  'Majer');
+  const admin      = await upsertUser('majerzdenko@gmail.com', 'SKoStest123',    'Zdenko',  'Majer', 'ADMIN');
   const rozhodca1  = await upsertUser('rozhodca1@skos.sk',     'Rozhodca123',   'Juraj',   'Blaho');
   const rozhodca2  = await upsertUser('rozhodca2@skos.sk',     'Rozhodca123',   'Martin',  'Sedlák');
   const rozhodca3  = await upsertUser('rozhodca3@skos.sk',     'Rozhodca123',   'Peter',   'Kováč');
