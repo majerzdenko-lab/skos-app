@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, users as usersApi } from '../../api/endpoints';
-import type { Event, Category, EventUser } from '../../api/endpoints';
+import type { Event, Category, EventUser, Role } from '../../api/endpoints';
+import { useAuthStore } from '../../stores/authStore';
 import Layout from '../../components/Layout';
 
 const STATUS_FLOW = ['SETUP', 'REGISTRATION', 'DRAW', 'ACTIVE', 'CLOSED'] as const;
@@ -28,7 +29,9 @@ const STATUS_HINT: Record<string, string> = {
 
 export default function EventSetup() {
   const { id } = useParams<{ id: string }>();
+  const currentUser = useAuthStore((s) => s.user);
   const [event, setEvent] = useState<Event | null>(null);
+  const [myRole, setMyRole] = useState<Role | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [users, setUsers] = useState<EventUser[]>([]);
   const [tab, setTab] = useState<'info' | 'categories' | 'users'>('info');
@@ -42,9 +45,13 @@ export default function EventSetup() {
   useEffect(() => {
     if (!id) return;
     eventsApi.get(id).then((r) => setEvent(r.data));
+    eventsApi.getMyRole(id).then((r) => setMyRole(r.data.role)).catch(() => {});
     categoriesApi.list(id).then((r) => setCats(r.data));
     usersApi.list(id).then((r) => setUsers(r.data)).catch(() => {});
   }, [id]);
+
+  const isJudge = myRole === 'JUDGE';
+  const canEdit = myRole === 'ADMIN' || myRole === 'REGISTRAR';
 
   const handleLoadTemplate = async () => {
     if (!id) return;
@@ -179,29 +186,33 @@ export default function EventSetup() {
               {t === 'info' ? 'Informácie' : t === 'categories' ? 'Kategórie' : 'Používatelia'}
             </button>
           ))}
-          <Link
-            to={`/events/${id}/registration`}
-            className={`pb-2 px-1 border-b-2 transition-colors ${
-              event.status === 'REGISTRATION' ? 'border-blue-500 text-blue-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Registrácia
-          </Link>
-          <Link
-            to={`/events/${id}/draw`}
-            className={`pb-2 px-1 border-b-2 transition-colors ${
-              event.status === 'DRAW' ? 'border-amber-500 text-amber-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Žrebovanie
-          </Link>
+          {!isJudge && (
+            <Link
+              to={`/events/${id}/registration`}
+              className={`pb-2 px-1 border-b-2 transition-colors ${
+                event.status === 'REGISTRATION' ? 'border-blue-500 text-blue-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Registrácia
+            </Link>
+          )}
+          {!isJudge && (
+            <Link
+              to={`/events/${id}/draw`}
+              className={`pb-2 px-1 border-b-2 transition-colors ${
+                event.status === 'DRAW' ? 'border-amber-500 text-amber-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Žrebovanie
+            </Link>
+          )}
           <Link
             to={`/events/${id}/judging`}
             className={`pb-2 px-1 border-b-2 transition-colors ${
               event.status === 'ACTIVE' ? 'border-green-500 text-green-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Rozhodcovia
+            Súťaž
           </Link>
           <Link to={`/events/${id}/results-admin`} className="pb-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700">Výsledky</Link>
         </div>
@@ -210,14 +221,16 @@ export default function EventSetup() {
           <div>
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-semibold">Kategórie</h2>
-              <div className="flex gap-2">
-                <button onClick={handleLoadTemplate} className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50">
-                  Načítaj šablónu
-                </button>
-                <button onClick={() => setNewCat(true)} className="bg-green-700 text-white text-sm px-3 py-1.5 rounded hover:bg-green-800">
-                  + Pridaj kategóriu
-                </button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-2">
+                  <button onClick={handleLoadTemplate} className="border border-gray-300 text-sm px-3 py-1.5 rounded hover:bg-gray-50">
+                    Načítaj šablónu
+                  </button>
+                  <button onClick={() => setNewCat(true)} className="bg-green-700 text-white text-sm px-3 py-1.5 rounded hover:bg-green-800">
+                    + Pridaj kategóriu
+                  </button>
+                </div>
+              )}
             </div>
 
             {newCat && (
@@ -254,10 +267,12 @@ export default function EventSetup() {
                         <span className="font-medium text-sm">{cat.name}</span>
                         <span className="ml-3 text-xs text-gray-400">{cat.plotDimensions} · {cat.plotCount} políčok · {cat.categoryType === 'TEAM' ? 'Tímy' : 'Jednotlivci'}</span>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => setEditingCat(cat)} className="text-xs text-blue-600 hover:underline">Upraviť</button>
-                        <button onClick={() => handleDeleteCat(cat.id)} className="text-xs text-red-500 hover:underline">Zmazať</button>
-                      </div>
+                      {canEdit && (
+                        <div className="flex gap-2">
+                          <button onClick={() => setEditingCat(cat)} className="text-xs text-blue-600 hover:underline">Upraviť</button>
+                          <button onClick={() => handleDeleteCat(cat.id)} className="text-xs text-red-500 hover:underline">Zmazať</button>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -269,38 +284,50 @@ export default function EventSetup() {
         {tab === 'users' && (
           <div>
             <h2 className="font-semibold mb-3">Používatelia a roly</h2>
-            <form onSubmit={handleInvite} className="flex gap-2 mb-4">
-              <input
-                type="email"
-                required
-                placeholder="Email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm flex-1"
-              />
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
-                className="border border-gray-300 rounded px-2 py-1.5 text-sm"
-              >
-                <option value="REGISTRAR">Registrátor</option>
-                <option value="JUDGE">Rozhodca</option>
-                <option value="COMPETITOR">Súťažiaci</option>
-              </select>
-              <button type="submit" className="bg-green-700 text-white px-3 py-1.5 rounded text-sm hover:bg-green-800">
-                Pozvať
-              </button>
-            </form>
+            {myRole === 'ADMIN' && (
+              <form onSubmit={handleInvite} className="flex gap-2 mb-4">
+                <input
+                  type="email"
+                  required
+                  placeholder="Email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm flex-1"
+                />
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value as typeof inviteRole)}
+                  className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+                >
+                  <option value="REGISTRAR">Registrátor</option>
+                  <option value="JUDGE">Rozhodca</option>
+                  <option value="COMPETITOR">Súťažiaci</option>
+                </select>
+                <button type="submit" className="bg-green-700 text-white px-3 py-1.5 rounded text-sm hover:bg-green-800">
+                  Pozvať
+                </button>
+              </form>
+            )}
             <div className="space-y-2">
-              {users.map((u) => (
-                <div key={u.id} className="flex items-center justify-between border border-gray-200 rounded px-4 py-2 text-sm">
-                  <span>{u.user.email}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{u.role}</span>
-                    <button onClick={() => handleRemoveUser(u.userId)} className="text-xs text-red-500 hover:underline">Odstrániť</button>
-                  </div>
-                </div>
-              ))}
+              {users
+                .filter((u) => myRole === 'ADMIN' || u.userId === currentUser?.id)
+                .map((u) => {
+                  const roleLabels: Record<string, string> = { ADMIN: 'Administrátor', REGISTRAR: 'Registrátor', JUDGE: 'Rozhodca', COMPETITOR: 'Súťažiaci' };
+                  return (
+                    <div key={u.id} className="flex items-center justify-between border border-gray-200 rounded px-4 py-2 text-sm">
+                      <div>
+                        <span className="font-medium">{u.user.firstName} {u.user.lastName}</span>
+                        <span className="ml-2 text-gray-400 text-xs">{u.user.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">{roleLabels[u.role] ?? u.role}</span>
+                        {myRole === 'ADMIN' && u.userId !== currentUser?.id && (
+                          <button onClick={() => handleRemoveUser(u.userId)} className="text-xs text-red-500 hover:underline">Odstrániť</button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}

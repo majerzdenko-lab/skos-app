@@ -49,6 +49,8 @@ export const participants = {
     client.put<Participant>(`/api/events/${eventId}/participants/${pid}`, data),
   delete: (eventId: string, pid: string) =>
     client.delete(`/api/events/${eventId}/participants/${pid}`),
+  makeJudge: (eventId: string, pid: string, data: { email: string; password: string }) =>
+    client.post(`/api/events/${eventId}/participants/${pid}/make-judge`, data),
   registerPublic: (eventId: string, data: PublicRegistrationInput) =>
     client.post(`/api/events/${eventId}/register-public`, data),
 };
@@ -183,7 +185,7 @@ export interface ParticipantInput {
   dateOfBirth?: string;
   email?: string;
   emailConsent?: boolean;
-  categoryId: string;
+  categoryId?: string;
 }
 
 export interface PublicRegistrationInput {
