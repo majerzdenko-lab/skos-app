@@ -37,6 +37,7 @@ export default function EventSetup() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'REGISTRAR' | 'JUDGE' | 'COMPETITOR'>('JUDGE');
   const [dragging, setDragging] = useState<string | null>(null);
+  const [advanceError, setAdvanceError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -86,7 +87,6 @@ export default function EventSetup() {
 
   if (!event) return <Layout><div className="p-8 text-gray-400">Načítavanie...</div></Layout>;
 
-  const [advanceError, setAdvanceError] = useState('');
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(event.status as typeof STATUS_FLOW[number]) + 1];
 
   const handleAdvanceStatus = async () => {
