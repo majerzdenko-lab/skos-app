@@ -20,7 +20,7 @@ const reorderSchema = z.object({
   ids: z.array(z.string()),
 });
 
-router.get('/:id/categories', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
+router.get('/:id/categories', async (req, res) => {
   const categories = await prisma.category.findMany({
     where: { eventId: req.params.id },
     orderBy: { order: 'asc' },
