@@ -73,6 +73,8 @@ export const entries = {
     client.delete(`/api/entries/${entryId}/claim`, { params: userId ? { userId } : {} }),
   assignJudges: (eventId: string, catId: string) =>
     client.post(`/api/events/${eventId}/categories/${catId}/assign-judges`),
+  saveJudgeTime: (entryId: string, data: { centiseconds: number; penalty: number }) =>
+    client.post(`/api/entries/${entryId}/save-judge-time`, data),
 };
 
 // Teams
@@ -217,6 +219,9 @@ export interface EntryJudge {
   id: string;
   userId: string;
   user: { id: string; firstName: string | null; lastName: string | null };
+  assignedAt: string;
+  completedAt: string | null;
+  centiseconds: number | null;
 }
 
 export interface EntryWithParticipant extends Entry {

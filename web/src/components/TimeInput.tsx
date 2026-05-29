@@ -1,16 +1,16 @@
 import { useState, useRef } from 'react';
-import { mmSsToSeconds, secondsToMmSs } from '../utils/time';
+import { parseCentiseconds, centisecondsToDisplay } from '../utils/time';
 
 interface Props {
   value: number | null;
-  onChange: (seconds: number | null) => void;
+  onChange: (centiseconds: number | null) => void;
   disabled?: boolean;
   className?: string;
   placeholder?: string;
 }
 
-export default function TimeInput({ value, onChange, disabled, className = '', placeholder = 'm:ss' }: Props) {
-  const [text, setText] = useState(value != null ? secondsToMmSs(value) : '');
+export default function TimeInput({ value, onChange, disabled, className = '', placeholder = 'm:ss.cc' }: Props) {
+  const [text, setText] = useState(value != null ? centisecondsToDisplay(value) : '');
   const [error, setError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -20,13 +20,13 @@ export default function TimeInput({ value, onChange, disabled, className = '', p
       onChange(null);
       return;
     }
-    const seconds = mmSsToSeconds(text);
-    if (seconds == null) {
+    const cs = parseCentiseconds(text);
+    if (cs == null) {
       setError(true);
     } else {
       setError(false);
-      setText(secondsToMmSs(seconds));
-      onChange(seconds);
+      setText(centisecondsToDisplay(cs));
+      onChange(cs);
     }
   };
 
@@ -45,7 +45,7 @@ export default function TimeInput({ value, onChange, disabled, className = '', p
       onBlur={handleBlur}
       disabled={disabled}
       placeholder={placeholder}
-      className={`border rounded px-2 py-1 text-sm font-mono w-20 ${
+      className={`border rounded px-2 py-1 text-sm font-mono w-24 ${
         error ? 'border-red-500 bg-red-50' : 'border-gray-300'
       } disabled:bg-gray-100 disabled:cursor-not-allowed ${className}`}
     />

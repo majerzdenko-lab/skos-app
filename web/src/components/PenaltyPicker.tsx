@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { secondsToMmSs, mmSsToSeconds } from '../utils/time';
+import { centisecondsToDisplay, parseCentiseconds } from '../utils/time';
 
-const PRESETS = [0, 3, 5, 8, 10, 13, 15, 20, 25, 30];
+const PRESETS = [0, 300, 500, 800, 1000, 1300, 1500, 2000, 2500, 3000]; // centiseconds
 
 interface Props {
   value: number;
-  onChange: (seconds: number) => void;
+  onChange: (centiseconds: number) => void;
   disabled?: boolean;
 }
 
@@ -15,31 +15,31 @@ export default function PenaltyPicker({ value, onChange, disabled }: Props) {
 
   const handleCustomBlur = () => {
     if (!custom.trim()) return;
-    const s = mmSsToSeconds(custom);
-    if (s == null) {
+    const cs = parseCentiseconds(custom);
+    if (cs == null) {
       setCustomError(true);
     } else {
       setCustomError(false);
       setCustom('');
-      onChange(s);
+      onChange(cs);
     }
   };
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {PRESETS.map((s) => (
+      {PRESETS.map((cs) => (
         <button
-          key={s}
+          key={cs}
           type="button"
           disabled={disabled}
-          onClick={() => onChange(s)}
+          onClick={() => onChange(cs)}
           className={`px-2 py-0.5 text-xs rounded border font-mono ${
-            value === s
+            value === cs
               ? 'bg-amber-500 border-amber-600 text-white'
               : 'bg-white border-gray-300 hover:bg-gray-50'
           } disabled:opacity-40 disabled:cursor-not-allowed`}
         >
-          {secondsToMmSs(s)}
+          {centisecondsToDisplay(cs)}
         </button>
       ))}
       <input

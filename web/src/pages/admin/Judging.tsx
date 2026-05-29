@@ -7,7 +7,8 @@ import { useAuthStore } from '../../stores/authStore';
 import Stopwatch from '../../components/Stopwatch';
 import PenaltyPicker from '../../components/PenaltyPicker';
 import TimeInput from '../../components/TimeInput';
-import { secondsToMmSs } from '../../utils/time';
+import JudgeStopwatch from '../../components/JudgeStopwatch';
+import { centisecondsToDisplay } from '../../utils/time';
 import Layout from '../../components/Layout';
 
 export default function Judging() {
@@ -62,7 +63,7 @@ export default function Judging() {
             if (e.id !== entryId) return e;
             const alreadyHas = e.judges.some((j) => j.userId === judge.id);
             if (alreadyHas) return e;
-            return { ...e, judges: [...e.judges, { id: `tmp-${judge.id}`, userId: judge.id, user: judge }] };
+            return { ...e, judges: [...e.judges, { id: `tmp-${judge.id}`, userId: judge.id, user: judge, assignedAt: new Date().toISOString(), completedAt: null, centiseconds: null }] };
           });
         }
         return next;
@@ -215,72 +216,48 @@ export default function Judging() {
               <div className="space-y-6">
                 {/* My participants */}
                 <div>
-                  <h2 className="text-sm font-semibold text-green-800 bg-green-50 border border-green-200 rounded px-3 py-1.5 mb-2 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-green-800 bg-green-50 border border-green-200 rounded px-3 py-1.5 mb-3 flex items-center justify-between">
                     Moji účastníci
                     <span className="font-mono text-green-600">{myEntries.length}</span>
                   </h2>
                   {myEntries.length === 0 ? (
                     <p className="text-sm text-gray-400 px-1">Zatiaľ žiadni. Prevezmite si účastníka nižšie.</p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-gray-100 border-b border-gray-300 text-left">
-                            <th className="px-2 py-2 w-12">Políčko</th>
-                            <th className="px-2 py-2 w-32">Meno</th>
-                            <th className="px-2 py-2 w-28">Stopky R1</th>
-                            <th className="px-2 py-2 w-28">Stopky R2</th>
-                            <th className="px-2 py-2 w-24">Základ. čas</th>
-                            <th className="px-2 py-2 w-44">Penalizácia</th>
-                            <th className="px-2 py-2 w-36">Poznámka</th>
-                            <th className="px-2 py-2 w-20 text-right">Výsledok</th>
-                            <th className="px-2 py-2 w-10 text-center">DNR</th>
-                            <th className="px-2 py-2 w-16"></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {myEntries.map((entry) => {
-                            const totalTime = entry.dnr ? null : entry.baseTime != null ? entry.baseTime + entry.penalty : null;
-                            const timesMatch = entry.time1 != null && entry.time2 != null && entry.time1 === entry.time2;
-                            const timesMismatch = entry.time1 != null && entry.time2 != null && entry.time1 !== entry.time2;
-                            return (
-                              <tr key={entry.id} className={`border-b border-gray-100 ${entry.dnr ? 'opacity-50' : ''}`}>
-                                <td className="px-2 py-2 font-mono font-semibold">{entry.plotNumber ?? '—'}</td>
-                                <td className="px-2 py-2 font-medium">{entry.participant.firstName} {entry.participant.lastName}</td>
-                                <td className="px-2 py-2">
-                                  <Stopwatch value={entry.time1} label="R1" disabled={isClosed || entry.dnr} onStop={async (s) => updateEntry(entry.id, { time1: s })} />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <Stopwatch value={entry.time2} label="R2" disabled={isClosed || entry.dnr} onStop={async (s) => updateEntry(entry.id, { time2: s })} />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <TimeInput value={entry.baseTime} disabled={isClosed || entry.dnr} onChange={(s) => updateEntry(entry.id, { baseTime: s })}
-                                    className={timesMatch ? '!border-green-400 !bg-green-50' : timesMismatch ? '!border-orange-400 !bg-orange-50' : ''} />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <PenaltyPicker value={entry.penalty} disabled={isClosed} onChange={(s) => updateEntry(entry.id, { penalty: s })} />
-                                </td>
-                                <td className="px-2 py-2">
-                                  <input type="text" defaultValue={entry.penaltyNote ?? ''} disabled={isClosed}
-                                    className="border border-gray-200 rounded px-2 py-0.5 text-xs w-32 disabled:bg-gray-50"
-                                    onBlur={(e) => updateEntry(entry.id, { penaltyNote: e.target.value })} />
-                                </td>
-                                <td className="px-2 py-2 text-right font-mono font-semibold">
-                                  {totalTime != null ? secondsToMmSs(totalTime) : '—'}
-                                </td>
-                                <td className="px-2 py-2 text-center">
-                                  <input type="checkbox" checked={entry.dnr} disabled={isClosed} onChange={(e) => updateEntry(entry.id, { dnr: e.target.checked })} />
-                                </td>
-                                <td className="px-2 py-2 text-center">
-                                  {!isClosed && (
-                                    <button onClick={() => handleUnclaim(entry.id)} className="text-xs text-gray-400 hover:text-red-500">Pustiť</button>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                    <div className="space-y-3">
+                      {myEntries.map((entry) => {
+                        const myJudgeRecord = entry.judges.find((j) => j.userId === currentUser?.id);
+                        const isCompleted = myJudgeRecord?.completedAt != null;
+                        const sortedJudges = [...entry.judges].sort((a, b) => new Date(a.assignedAt).getTime() - new Date(b.assignedAt).getTime());
+                        const judgeIndex = sortedJudges.findIndex((j) => j.userId === currentUser?.id);
+                        const savedCs = judgeIndex === 0 ? entry.time1 : entry.time2;
+                        return (
+                          <div key={entry.id} className={`border rounded-lg p-4 flex flex-col sm:flex-row sm:items-start gap-4 ${entry.dnr ? 'opacity-60 bg-gray-50' : 'bg-white'}`}>
+                            <div className="flex items-center gap-3 sm:w-48 shrink-0">
+                              <div className="font-mono font-bold text-2xl text-gray-700 w-10 text-center">{entry.plotNumber ?? '—'}</div>
+                              <div>
+                                <div className="font-semibold text-sm">{entry.participant.firstName} {entry.participant.lastName}</div>
+                                <div className="text-xs text-gray-400">{entry.participant.city}</div>
+                              </div>
+                            </div>
+                            <div className="flex-1">
+                              <JudgeStopwatch
+                                savedCs={isCompleted ? savedCs ?? null : null}
+                                savedPenalty={entry.penalty}
+                                locked={isCompleted || isClosed}
+                                disabled={isClosed || entry.dnr}
+                                onSave={async (cs, pen) => {
+                                  await entriesApi.saveJudgeTime(entry.id, { centiseconds: cs, penalty: pen });
+                                  const { data } = await entriesApi.list(id!, activeCat);
+                                  setEntryMap((prev) => ({ ...prev, [activeCat]: data.sort((a, b) => (a.plotNumber ?? 999) - (b.plotNumber ?? 999)) }));
+                                }}
+                              />
+                            </div>
+                            {!isCompleted && !isClosed && (
+                              <button onClick={() => handleUnclaim(entry.id)} className="text-xs text-gray-400 hover:text-red-500 shrink-0 self-start sm:self-center">Pustiť</button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -312,8 +289,8 @@ export default function Judging() {
                               <td className="px-2 py-1.5">
                                 <div className="flex flex-wrap gap-1">
                                   {entry.judges.map((j) => (
-                                    <span key={j.userId} className="bg-blue-100 text-blue-700 rounded px-1 text-xs">
-                                      {j.user.firstName} {j.user.lastName}
+                                    <span key={j.userId} className={`rounded px-1 text-xs ${j.completedAt ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                      {j.user.firstName} {j.user.lastName}{j.completedAt ? ' ✓' : ''}
                                     </span>
                                   ))}
                                   {entry.judges.length === 0 && <span className="text-gray-300 text-xs">—</span>}
@@ -381,7 +358,7 @@ export default function Judging() {
                               onBlur={(e) => updateEntry(entry.id, { penaltyNote: e.target.value })} />
                           </td>
                           <td className="px-2 py-2 text-right font-mono font-semibold">
-                            {totalTime != null ? secondsToMmSs(totalTime) : '—'}
+                            {totalTime != null ? centisecondsToDisplay(totalTime) : '—'}
                           </td>
                           <td className="px-2 py-2">
                             <div className="flex flex-wrap gap-0.5">

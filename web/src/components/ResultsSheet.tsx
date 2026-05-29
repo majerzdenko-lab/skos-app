@@ -1,4 +1,4 @@
-import { secondsToMmSs, formatEventDate } from '../utils/time';
+import { centisecondsToDisplay, formatEventDate } from '../utils/time';
 import type { Category, Event, EntryWithParticipant, Team } from '../api/endpoints';
 
 interface Props {
@@ -80,13 +80,13 @@ function IndividualTable({ entries }: { entries: EntryWithParticipant[] }) {
               <td className="px-2 py-1 text-gray-500">{entry.participant.dateOfBirth ?? ''}</td>
               <td className="px-2 py-1 text-right">{entry.plotNumber ?? ''}</td>
               <td className="px-2 py-1 text-right font-mono">
-                {entry.dnr ? 'DNR' : entry.baseTime != null ? secondsToMmSs(entry.baseTime) : ''}
+                {entry.dnr ? 'DNR' : entry.baseTime != null ? centisecondsToDisplay(entry.baseTime) : ''}
               </td>
               <td className="px-2 py-1 text-right font-mono">
-                {entry.dnr ? '' : secondsToMmSs(entry.penalty)}
+                {entry.dnr ? '' : centisecondsToDisplay(entry.penalty)}
               </td>
               <td className="px-2 py-1 text-right font-mono font-semibold">
-                {totalTime != null ? secondsToMmSs(totalTime) : ''}
+                {totalTime != null ? centisecondsToDisplay(totalTime) : ''}
               </td>
             </tr>
           );
@@ -127,11 +127,11 @@ function TeamTable({ teams }: { teams: Team[] }) {
               <td className="px-2 py-1"></td>
               <td className="px-2 py-1 text-right">{team.plotNumber ?? ''}</td>
               <td className="px-2 py-1 text-right font-mono">
-                {team.baseTime != null ? secondsToMmSs(team.baseTime) : ''}
+                {team.baseTime != null ? centisecondsToDisplay(team.baseTime) : ''}
               </td>
-              <td className="px-2 py-1 text-right font-mono">{secondsToMmSs(team.penalty)}</td>
+              <td className="px-2 py-1 text-right font-mono">{centisecondsToDisplay(team.penalty)}</td>
               <td className="px-2 py-1 text-right font-mono font-semibold">
-                {totalTime != null ? secondsToMmSs(totalTime) : ''}
+                {totalTime != null ? centisecondsToDisplay(totalTime) : ''}
               </td>
             </tr>,
             ...team.members.map((m) => (

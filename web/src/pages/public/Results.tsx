@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { events as eventsApi } from '../../api/endpoints';
 import { publicApi } from '../../api/endpoints';
 import { useEventSocket } from '../../hooks/useEventSocket';
-import { secondsToMmSs, formatEventDate } from '../../utils/time';
+import { centisecondsToDisplay, formatEventDate } from '../../utils/time';
 import type { PublicEvent } from '../../api/endpoints';
 import Layout from '../../components/Layout';
 
@@ -131,7 +131,7 @@ export default function Results() {
                           <td className="px-3 py-2 text-gray-500">{entry.participant.city}</td>
                           <td className="px-3 py-2 text-right font-mono">{entry.plotNumber ?? ''}</td>
                           <td className="px-3 py-2 text-right font-mono font-semibold">
-                            {entry.dnr ? 'DNR' : totalTime != null ? secondsToMmSs(totalTime) : '—'}
+                            {entry.dnr ? 'DNR' : totalTime != null ? centisecondsToDisplay(totalTime) : '—'}
                           </td>
                         </tr>
                       );

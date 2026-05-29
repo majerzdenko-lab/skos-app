@@ -39,7 +39,10 @@ async function getEventRoleForEntry(userId: string, entryId: string): Promise<Ro
   return eu?.role ?? null;
 }
 
-const judgeInclude = { include: { user: { select: { id: true, firstName: true, lastName: true } } } };
+const judgeInclude = {
+  include: { user: { select: { id: true, firstName: true, lastName: true } } },
+  orderBy: { assignedAt: 'asc' as const },
+};
 
 // GET /api/events/:id/categories/:catId/entries
 router.get('/events/:id/categories/:catId/entries', authenticate, requireEventRole('ADMIN', 'REGISTRAR', 'JUDGE', 'COMPETITOR'), async (req, res) => {
@@ -218,6 +221,64 @@ router.post('/events/:id/categories/:catId/assign-judges', authenticate, require
     data: entries.map((e, i) => ({ entryId: e.id, userId: judges[i % judges.length].userId })),
   });
   res.json({ ok: true, assigned: entries.length, judges: judges.length });
+});
+
+// POST /api/entries/:entryId/save-judge-time — judge saves their measured time
+const saveJudgeTimeSchema = z.object({
+  centiseconds: z.number().int().nonnegative(),
+  penalty: z.number().int().nonnegative().default(0),
+});
+
+router.post('/entries/:entryId/save-judge-time', authenticate, validate(saveJudgeTimeSchema), async (req, res) => {
+  const role = await getEventRoleForEntry(req.user!.id, req.params.entryId);
+  if (!role || !['ADMIN', 'JUDGE'].includes(role)) {
+    res.status(403).json({ error: 'Forbidden' });
+    return;
+  }
+
+  const judgeRecord = await prisma.entryJudge.findUnique({
+    where: { entryId_userId: { entryId: req.params.entryId, userId: req.user!.id } },
+  });
+  if (!judgeRecord) {
+    res.status(404).json({ error: 'You have not claimed this entry' });
+    return;
+  }
+  if (judgeRecord.completedAt) {
+    res.status(409).json({ error: 'Already saved' });
+    return;
+  }
+
+  const allJudges = await prisma.entryJudge.findMany({
+    where: { entryId: req.params.entryId },
+    orderBy: { assignedAt: 'asc' },
+  });
+  const judgeIndex = allJudges.findIndex((j) => j.userId === req.user!.id);
+  const timeField = judgeIndex === 0 ? 'time1' : 'time2';
+
+  const { centiseconds, penalty } = req.body as { centiseconds: number; penalty: number };
+
+  const [updatedEntry, updatedJudge] = await prisma.$transaction([
+    prisma.entry.update({
+      where: { id: req.params.entryId },
+      data: { [timeField]: centiseconds, penalty },
+    }),
+    prisma.entryJudge.update({
+      where: { entryId_userId: { entryId: req.params.entryId, userId: req.user!.id } },
+      data: { completedAt: new Date(), centiseconds },
+    }),
+  ]);
+
+  const entry = await prisma.entry.findUnique({
+    where: { id: req.params.entryId },
+    include: { category: true },
+  });
+
+  const totalTime = updatedEntry.baseTime != null ? updatedEntry.baseTime + penalty : null;
+  getIo()
+    .to(`event:${entry!.category.eventId}`)
+    .emit('entry:updated', { entryId: req.params.entryId, [timeField]: centiseconds, penalty, baseTime: updatedEntry.baseTime, totalTime });
+
+  res.json({ ok: true, timeField, entry: updatedEntry, judgeRecord: updatedJudge });
 });
 
 // POST /api/events/:id/categories/:catId/close
