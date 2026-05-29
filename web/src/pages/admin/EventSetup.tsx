@@ -175,15 +175,19 @@ export default function EventSetup() {
 
         {/* Navigation links */}
         <div className="flex flex-wrap gap-4 mb-6 text-sm border-b border-gray-200">
-          {(['info', 'categories', ...(myRole === 'ADMIN' ? ['users'] : [])] as const).map((t) => (
+          {([
+            { key: 'info', label: 'Informácie' },
+            { key: 'categories', label: 'Kategórie' },
+            ...(myRole === 'ADMIN' ? [{ key: 'users', label: 'Používatelia' }] : []),
+          ] as { key: typeof tab; label: string }[]).map(({ key, label }) => (
             <button
-              key={t}
-              onClick={() => setTab(t as typeof tab)}
+              key={key}
+              onClick={() => setTab(key)}
               className={`pb-2 px-1 border-b-2 transition-colors ${
-                tab === t ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'
+                tab === key ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'
               }`}
             >
-              {t === 'info' ? 'Informácie' : t === 'categories' ? 'Kategórie' : 'Používatelia'}
+              {label}
             </button>
           ))}
           {!isJudge && (

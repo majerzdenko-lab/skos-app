@@ -168,7 +168,11 @@ export default function Judging() {
   const canClose = currentEntries.length > 0 && currentEntries.every((e) => e.dnr || e.baseTime != null);
   const isJudge = myRole === 'JUDGE';
 
-  if (myRole === 'REGISTRAR') {
+  if (myRole === null) {
+    return <Layout><div className="p-8 text-gray-400">Načítavanie...</div></Layout>;
+  }
+
+  if (myRole === 'REGISTRAR' || myRole === 'COMPETITOR') {
     return (
       <Layout>
         <div className="max-w-xl mx-auto px-4 py-16 text-center">
