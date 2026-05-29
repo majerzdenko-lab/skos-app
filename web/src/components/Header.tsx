@@ -41,14 +41,9 @@ export default function Header() {
     <header className="border-b border-gray-200 bg-white">
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
-        {/* SKoS logo — replace the green circle with <img src="/skos-logo.png"> once available */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-green-700 flex items-center justify-center text-white font-bold text-sm select-none shrink-0">
-            SK
-          </div>
-          <span className="font-semibold text-sm text-gray-800 hidden sm:block leading-tight">
-            Slovenský<br />kosecký spolok
-          </span>
+        {/* SKoS logo */}
+        <div className="flex items-center shrink-0">
+          <img src="/skos-logo.jpg" alt="Slovenský kosecký spolok" className="h-10 w-auto" />
         </div>
 
         {/* User info */}
