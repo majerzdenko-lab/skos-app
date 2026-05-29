@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import { prisma } from '../prisma';
 import { validate } from '../middleware/validate';
+import { authenticateOptional } from '../middleware/authenticateOptional';
 
 const router = Router();
 
@@ -40,7 +41,51 @@ router.get('/events/:id/registration-open', async (req, res) => {
   res.json({ open: event.status === 'REGISTRATION' });
 });
 
-router.post('/events/:id/register-public', validate(publicRegisterSchema), async (req, res) => {
+// Check current user's registration status for an event (and return profile for pre-fill)
+router.get('/events/:id/me', authenticateOptional, async (req, res) => {
+  if (!req.user) {
+    res.json({ registered: false, profile: null });
+    return;
+  }
+
+  const participant = await prisma.participant.findFirst({
+    where: { eventId: req.params.id, userId: req.user.id },
+    select: {
+      firstName: true,
+      lastName: true,
+      entries: { select: { category: { select: { name: true } } } },
+    },
+  });
+
+  if (participant) {
+    res.json({ registered: true, participant });
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: req.user.id },
+    select: { firstName: true, lastName: true, email: true },
+  });
+
+  const lastParticipant = await prisma.participant.findFirst({
+    where: { userId: req.user.id },
+    orderBy: { createdAt: 'desc' },
+    select: { city: true, dateOfBirth: true },
+  });
+
+  res.json({
+    registered: false,
+    profile: {
+      firstName: user?.firstName ?? null,
+      lastName: user?.lastName ?? null,
+      email: user?.email ?? null,
+      city: lastParticipant?.city ?? null,
+      dateOfBirth: lastParticipant?.dateOfBirth ?? null,
+    },
+  });
+});
+
+router.post('/events/:id/register-public', authenticateOptional, validate(publicRegisterSchema), async (req, res) => {
   const event = await prisma.event.findUnique({ where: { id: req.params.id }, select: { status: true } });
   if (!event) {
     res.status(404).json({ error: 'Event not found' });
@@ -49,6 +94,17 @@ router.post('/events/:id/register-public', validate(publicRegisterSchema), async
   if (event.status !== 'REGISTRATION') {
     res.status(403).json({ error: 'Registration is not open' });
     return;
+  }
+
+  // If authenticated, prevent duplicate registration
+  if (req.user) {
+    const existing = await prisma.participant.findFirst({
+      where: { eventId: req.params.id, userId: req.user.id },
+    });
+    if (existing) {
+      res.status(409).json({ error: 'Ste už zaregistrovaný na toto podujatie.' });
+      return;
+    }
   }
 
   const { categoryId, email, emailConsent, ...rest } = req.body;
@@ -74,6 +130,7 @@ router.post('/events/:id/register-public', validate(publicRegisterSchema), async
         email: email || null,
         emailConsent: emailConsent ?? false,
         unsubscribeToken: unsubscribeToken ?? null,
+        userId: req.user?.id ?? null,
       },
     });
     await tx.entry.create({ data: { participantId: participant.id, categoryId } });

@@ -121,6 +121,16 @@ export const publicApi = {
   results: (eventId: string) => client.get(`/api/events/${eventId}/results`),
 };
 
+// Competitor self-service
+export const me = {
+  eventStatus: (eventId: string) =>
+    client.get<{
+      registered: boolean;
+      participant?: { firstName: string; lastName: string; entries: Array<{ category: { name: string } }> };
+      profile: { firstName: string | null; lastName: string | null; email: string | null; city: string | null; dateOfBirth: string | null } | null;
+    }>(`/api/events/${eventId}/me`),
+};
+
 // Types
 export type EventStatus = 'SETUP' | 'REGISTRATION' | 'DRAW' | 'ACTIVE' | 'CLOSED';
 export type Role = 'ADMIN' | 'REGISTRAR' | 'JUDGE' | 'COMPETITOR';

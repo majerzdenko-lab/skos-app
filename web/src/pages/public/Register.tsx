@@ -1,29 +1,83 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
-import { events as eventsApi, categories as categoriesApi, participants as participantsApi } from '../../api/endpoints';
+import { events as eventsApi, categories as categoriesApi, participants as participantsApi, auth, me as meApi } from '../../api/endpoints';
 import type { PublicEvent, Category } from '../../api/endpoints';
+import { useAuthStore } from '../../stores/authStore';
 import { formatEventDate } from '../../utils/time';
 import Layout from '../../components/Layout';
 
 export default function Register() {
   const { id } = useParams<{ id: string }>();
+  const authUser = useAuthStore((s) => s.user);
+  const storeLogin = useAuthStore((s) => s.login);
+  const storeLogout = useAuthStore((s) => s.logout);
+
   const [event, setEvent] = useState<PublicEvent | null>(null);
   const [cats, setCats] = useState<Category[]>([]);
   const [form, setForm] = useState({ firstName: '', lastName: '', city: '', dateOfBirth: '', email: '', emailConsent: false, categoryId: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [alreadyRegistered, setAlreadyRegistered] = useState<string | null>(null); // category name
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginError, setLoginError] = useState('');
+
+  const applyMeStatus = (data: {
+    registered: boolean;
+    participant?: { firstName: string; lastName: string; entries: Array<{ category: { name: string } }> };
+    profile: { firstName: string | null; lastName: string | null; email: string | null; city: string | null; dateOfBirth: string | null } | null;
+  }) => {
+    if (data.registered && data.participant) {
+      setAlreadyRegistered(data.participant.entries[0]?.category?.name ?? '');
+    } else if (data.profile) {
+      const p = data.profile;
+      setForm((f) => ({
+        ...f,
+        firstName: p.firstName ?? f.firstName,
+        lastName: p.lastName ?? f.lastName,
+        email: p.email ?? f.email,
+        city: p.city ?? f.city,
+        dateOfBirth: p.dateOfBirth ?? f.dateOfBirth,
+      }));
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
-    Promise.all([eventsApi.getPublic(id), categoriesApi.list(id)])
-      .then(([e, c]) => {
+    const load = async () => {
+      try {
+        const [e, c, m] = await Promise.all([
+          eventsApi.getPublic(id),
+          categoriesApi.list(id),
+          meApi.eventStatus(id),
+        ]);
         setEvent(e.data);
-        setCats(c.data.filter((cat) => cat.categoryType === 'INDIVIDUAL'));
-        if (c.data.length > 0) setForm((f) => ({ ...f, categoryId: c.data[0].id }));
-      })
-      .finally(() => setLoading(false));
+        const indCats = c.data.filter((cat) => cat.categoryType === 'INDIVIDUAL');
+        setCats(indCats);
+        if (indCats.length > 0) setForm((f) => ({ ...f, categoryId: indCats[0].id }));
+        applyMeStatus(m.data);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [id]);
+
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    try {
+      const r = await auth.login({ email: loginForm.email, password: loginForm.password });
+      storeLogin(r.data.accessToken, r.data.user);
+      setShowLogin(false);
+      const m = await meApi.eventStatus(id!);
+      applyMeStatus(m.data);
+    } catch {
+      setLoginError('Nesprávny email alebo heslo.');
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -47,6 +101,22 @@ export default function Register() {
 
   if (loading) return <Layout><div className="p-8 text-gray-400">Načítavanie...</div></Layout>;
   if (!event) return <Layout><div className="p-8">Podujatie nenájdené.</div></Layout>;
+
+  if (alreadyRegistered !== null) {
+    return (
+      <Layout>
+        <div className="max-w-lg mx-auto px-4 py-16 text-center">
+          <div className="text-4xl mb-4">✓</div>
+          <h1 className="text-xl font-bold mb-2">Ste zaregistrovaný!</h1>
+          <p className="text-gray-500 mb-1">{event.name}</p>
+          {alreadyRegistered && <p className="text-gray-400 text-sm">{alreadyRegistered}</p>}
+          <button onClick={() => { storeLogout(); setAlreadyRegistered(null); }} className="mt-6 text-xs text-gray-400 hover:underline">
+            Odhlásiť sa
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   if (event.status !== 'REGISTRATION') {
     return (
@@ -78,9 +148,64 @@ export default function Register() {
     <Layout>
       <div className="max-w-lg mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold mb-1">{event.name}</h1>
-        <p className="text-sm text-gray-500 mb-8">
+        <p className="text-sm text-gray-500 mb-6">
           {formatEventDate(event.date)} · {event.location}
         </p>
+
+        {/* Login / account section */}
+        {authUser ? (
+          <div className="flex items-center gap-2 mb-6 bg-green-50 border border-green-200 rounded px-4 py-2.5 text-sm">
+            <span className="flex-1 text-green-800">
+              Prihlásený ako <strong>{authUser.firstName} {authUser.lastName}</strong>
+            </span>
+            <button
+              onClick={() => storeLogout()}
+              className="text-xs text-gray-500 hover:underline shrink-0"
+            >
+              Odhlásiť
+            </button>
+          </div>
+        ) : (
+          <div className="mb-6">
+            {!showLogin ? (
+              <button
+                onClick={() => setShowLogin(true)}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Mám konto pretekára → Prihlásiť sa
+              </button>
+            ) : (
+              <form onSubmit={handleLogin} className="bg-gray-50 border border-gray-200 rounded p-4 space-y-3">
+                <p className="text-sm font-medium text-gray-700">Prihlásiť sa</p>
+                <input
+                  type="email"
+                  required
+                  placeholder="Email"
+                  value={loginForm.email}
+                  onChange={(e) => setLoginForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                />
+                <input
+                  type="password"
+                  required
+                  placeholder="Heslo"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm((f) => ({ ...f, password: e.target.value }))}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+                />
+                {loginError && <p className="text-sm text-red-600">{loginError}</p>}
+                <div className="flex gap-2">
+                  <button type="submit" className="bg-green-700 text-white px-4 py-1.5 rounded text-sm hover:bg-green-800">
+                    Prihlásiť sa
+                  </button>
+                  <button type="button" onClick={() => setShowLogin(false)} className="text-sm text-gray-500 hover:underline">
+                    Zrušiť
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
