@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import bcrypt from 'bcrypt';
+import argon2 from 'argon2';
 import { prisma } from '../prisma';
 import { authenticate } from '../middleware/authenticate';
 import { requireEventRole } from '../middleware/requireRole';
@@ -69,7 +69,7 @@ router.post('/:id/participants/:pid/make-judge', authenticate, requireEventRole(
   }
 
   const { email, password } = req.body as { email: string; password: string };
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await argon2.hash(password);
 
   let user = await prisma.user.findUnique({ where: { email } });
   if (user) {
