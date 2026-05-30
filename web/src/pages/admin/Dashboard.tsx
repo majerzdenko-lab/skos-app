@@ -58,7 +58,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-8">
           <div>
             <h1 className="text-2xl font-bold">Podujatia</h1>
             <p className="text-sm text-gray-500">
@@ -66,7 +66,7 @@ export default function Dashboard() {
               {user?.systemRole === 'ADMIN' && <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full font-medium">Systémový administrátor</span>}
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
               onClick={() => setCreating(true)}
               className="bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800"
@@ -138,15 +138,15 @@ export default function Dashboard() {
                 to={`/events/${event.id}/setup`}
                 className="block border border-gray-200 rounded-lg p-4 hover:border-green-400 hover:shadow-sm transition-all"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold">{event.name}</div>
-                    <div className="text-sm text-gray-500">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold truncate">{event.name}</div>
+                    <div className="text-sm text-gray-500 truncate">
                       {formatEventDate(event.date)} · {event.location}
                     </div>
                   </div>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[event.status]}`}
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[event.status]}`}
                   >
                     {STATUS_LABELS[event.status]}
                   </span>

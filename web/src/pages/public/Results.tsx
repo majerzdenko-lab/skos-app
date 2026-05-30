@@ -102,12 +102,13 @@ export default function Results() {
         {activeCategory && (
           <div>
             {activeCategory.scored ? (
-              <table className="w-full border-collapse text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm min-w-[360px]">
                 <thead>
                   <tr className="bg-gray-100 border-b border-gray-400 text-left">
                     <th className="px-3 py-2 w-10">Por.</th>
                     <th className="px-3 py-2">Meno</th>
-                    <th className="px-3 py-2">Bydlisko</th>
+                    <th className="px-3 py-2 hidden sm:table-cell">Bydlisko</th>
                     <th className="px-3 py-2 w-16 text-right">Políčko</th>
                     <th className="px-3 py-2 w-20 text-right font-mono">Výsl. čas</th>
                   </tr>
@@ -128,7 +129,7 @@ export default function Results() {
                           <td className="px-3 py-2">
                             {entry.participant.firstName} {entry.participant.lastName}
                           </td>
-                          <td className="px-3 py-2 text-gray-500">{entry.participant.city}</td>
+                          <td className="px-3 py-2 text-gray-500 hidden sm:table-cell">{entry.participant.city}</td>
                           <td className="px-3 py-2 text-right font-mono">{entry.plotNumber ?? ''}</td>
                           <td className="px-3 py-2 text-right font-mono font-semibold">
                             {entry.dnr ? 'DNR' : totalTime != null ? centisecondsToDisplay(totalTime) : '—'}
@@ -138,6 +139,7 @@ export default function Results() {
                     })}
                 </tbody>
               </table>
+              </div>
             ) : (
               <p className="italic text-gray-500">nehodnotení</p>
             )}

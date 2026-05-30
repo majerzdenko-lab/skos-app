@@ -395,12 +395,12 @@ export default function EventSetup() {
                     />
                   ) : (
                     <>
-                      <div>
+                      <div className="min-w-0">
                         <span className="font-medium text-sm">{cat.name}</span>
-                        <span className="ml-3 text-xs text-gray-400">{cat.plotDimensions} · {cat.plotCount} políčok · {cat.categoryType === 'TEAM' ? 'Tímy' : 'Jednotlivci'}</span>
+                        <span className="ml-2 text-xs text-gray-400">{cat.plotDimensions} · {cat.plotCount} políčok · {cat.categoryType === 'TEAM' ? 'Tímy' : 'Jednotlivci'}</span>
                       </div>
                       {canEdit && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 shrink-0">
                           <button onClick={() => setEditingCat(cat)} className="text-xs text-blue-600 hover:underline">Upraviť</button>
                           <button onClick={() => handleDeleteCat(cat.id)} className="text-xs text-red-500 hover:underline">Zmazať</button>
                         </div>
@@ -417,7 +417,7 @@ export default function EventSetup() {
           <div>
             <h2 className="font-semibold mb-3">Používatelia a roly</h2>
             {myRole === 'ADMIN' && (
-              <form onSubmit={handleInvite} className="flex gap-2 mb-4">
+              <form onSubmit={handleInvite} className="flex flex-wrap gap-2 mb-4">
                 <input
                   type="email"
                   required
@@ -521,18 +521,18 @@ function UrlBox({ label, path }: { label: string; path: string }) {
   return (
     <div>
       <p className="text-xs text-gray-400 mb-1">{label}</p>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 min-w-0">
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono text-xs bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-blue-700 hover:bg-blue-50 hover:border-blue-200 truncate max-w-lg"
+          className="font-mono text-xs bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-blue-700 hover:bg-blue-50 hover:border-blue-200 truncate min-w-0 flex-1"
         >
           {url}
         </a>
         <button
           onClick={handleCopy}
-          className="text-xs border border-gray-200 rounded px-2 py-1.5 hover:bg-gray-50 shrink-0 text-gray-500"
+          className="text-xs border border-gray-200 rounded px-2 py-1.5 hover:bg-gray-50 shrink-0 text-gray-500 whitespace-nowrap"
         >
           {copied ? '✓ Skopírované' : 'Kopírovať'}
         </button>

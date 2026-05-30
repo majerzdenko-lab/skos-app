@@ -40,9 +40,9 @@ export default function ResultsAdmin() {
         <div className="flex items-center gap-3 mb-1">
           <Link to={`/events/${id}/setup`} className="text-sm text-gray-400 hover:text-gray-700">← Nastavenia</Link>
         </div>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
           <h1 className="text-2xl font-bold">{event.name} — Výsledky</h1>
-          <div className="flex gap-3 no-print">
+          <div className="flex flex-wrap gap-2 no-print">
             <a
               href={exportApi.participants(id!)}
               download

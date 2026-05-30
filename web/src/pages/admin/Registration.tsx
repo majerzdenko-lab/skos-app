@@ -311,10 +311,10 @@ export default function Registration() {
             </select>
             <button type="submit" className="bg-green-700 text-white rounded px-3 py-1.5 text-sm hover:bg-green-800">Pridaj</button>
           </div>
-          <div className="flex gap-3 items-center">
+          <div className="flex flex-wrap gap-3 items-center">
             <input placeholder="Email (nepovinný)" type="email" value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="border border-gray-300 rounded px-2 py-1.5 text-sm w-64" />
+              className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full sm:w-64" />
             <label className="flex items-center gap-1 text-sm text-gray-600">
               <input type="checkbox" checked={form.emailConsent} onChange={(e) => setForm((f) => ({ ...f, emailConsent: e.target.checked }))} />
               Súhlas s emailom
