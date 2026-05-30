@@ -206,7 +206,7 @@ export default function EventSetup() {
         </div>
 
         {/* Navigation links */}
-        <div className="flex flex-wrap gap-4 mb-6 text-sm border-b border-gray-200">
+        <div className="flex flex-wrap gap-x-3 gap-y-0 mb-6 text-sm border-b border-gray-200">
           <button
             onClick={() => setTab('info')}
             className={`pb-2 px-1 border-b-2 transition-colors ${tab === 'info' ? 'border-green-600 text-green-700 font-medium' : 'border-transparent text-gray-500'}`}

@@ -103,7 +103,7 @@ export default function Draw() {
 
         {/* All drawn banner */}
         {allLoaded && allDrawn && event?.status === 'DRAW' && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex items-center justify-between">
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-green-800 font-medium text-sm">Všetky kategórie sú vyžrebované.</p>
               <p className="text-green-600 text-xs">Môžete spustiť súťaž a rozhodcovia môžu začať zapisovať časy.</p>
@@ -111,7 +111,7 @@ export default function Draw() {
             <button
               onClick={handleStartCompetition}
               disabled={advancing}
-              className="bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800 disabled:opacity-50 ml-4 whitespace-nowrap"
+              className="bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800 disabled:opacity-50 whitespace-nowrap sm:ml-4"
             >
               {advancing ? 'Spúšťam…' : 'Začať súťaž →'}
             </button>

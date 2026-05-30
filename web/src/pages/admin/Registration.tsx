@@ -279,7 +279,7 @@ export default function Registration() {
         {/* Quick add form */}
         <form onSubmit={handleAdd} className="border border-gray-200 rounded-lg p-4 mb-6 bg-gray-50 relative">
           <h2 className="font-semibold text-sm mb-3">Pridaj osobu</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-3" ref={suggestionBoxRef}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-3" ref={suggestionBoxRef}>
             <div className="relative">
               <input required placeholder="Meno" value={form.firstName}
                 onChange={(e) => handleFormChange('firstName', e.target.value)}

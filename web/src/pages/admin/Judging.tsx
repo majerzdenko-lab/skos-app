@@ -220,11 +220,11 @@ export default function Judging() {
 
         {activeCat && (
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
               <span className={`text-sm font-medium px-2 py-0.5 rounded ${isClosed ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
                 {isClosed ? 'Uzatvorená' : 'Prebieha'}
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {!isJudge && !isClosed && (
                   <button
                     onClick={handleAssignJudges}

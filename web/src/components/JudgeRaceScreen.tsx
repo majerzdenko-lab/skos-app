@@ -85,7 +85,7 @@ export default function JudgeRaceScreen({ plotNumber, firstName, lastName, city,
   // ── READY ──────────────────────────────────────────────────────────────
   if (phase === 'ready') {
     return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-between py-12 px-6 select-none">
+      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-between py-10 px-6 select-none safe-area">
         <button onClick={onBack} className="self-start text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1">
           ← Späť
         </button>
@@ -93,7 +93,7 @@ export default function JudgeRaceScreen({ plotNumber, firstName, lastName, city,
         <button
           onPointerDown={(e) => e.preventDefault()}
           onClick={handleStart}
-          className="w-52 h-52 rounded-full bg-green-600 text-white shadow-xl hover:bg-green-700 active:scale-95 transition-all flex flex-col items-center justify-center gap-2"
+          className="w-48 h-48 sm:w-52 sm:h-52 rounded-full bg-green-600 text-white shadow-xl active:scale-95 transition-transform flex flex-col items-center justify-center gap-2"
         >
           <span className="text-5xl leading-none">▶</span>
           <span className="text-2xl font-bold tracking-wide">Štart</span>
@@ -106,17 +106,17 @@ export default function JudgeRaceScreen({ plotNumber, firstName, lastName, city,
   // ── RUNNING ─────────────────────────────────────────────────────────────
   if (phase === 'running') {
     return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-between py-12 px-6 select-none">
+      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-between py-10 px-6 select-none">
         <div className="text-sm text-gray-400 text-center">
           {firstName} {lastName} · políčko {plotNumber ?? '—'}
         </div>
-        <div className="font-mono text-7xl font-bold text-blue-600 tabular-nums tracking-tight text-center">
+        <div className="font-mono text-6xl sm:text-7xl font-bold text-blue-600 tabular-nums tracking-tight text-center">
           {centisecondsToDisplay(elapsed)}
         </div>
         <button
           onPointerDown={(e) => e.preventDefault()}
           onClick={handleStop}
-          className="w-52 h-52 rounded-full bg-red-600 text-white shadow-xl hover:bg-red-700 active:scale-95 transition-all flex flex-col items-center justify-center gap-2"
+          className="w-48 h-48 sm:w-52 sm:h-52 rounded-full bg-red-600 text-white shadow-xl active:scale-95 transition-transform flex flex-col items-center justify-center gap-2"
         >
           <span className="text-5xl leading-none">⏹</span>
           <span className="text-2xl font-bold tracking-wide">Stop</span>
@@ -129,7 +129,7 @@ export default function JudgeRaceScreen({ plotNumber, firstName, lastName, city,
   // ── CONFIRM / EDIT TIME ─────────────────────────────────────────────────
   if (phase === 'confirm' || phase === 'edit') {
     return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-between py-12 px-6">
+      <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-between py-10 px-6">
         {participantLine}
 
         <div className="text-center w-full">
@@ -212,7 +212,7 @@ export default function JudgeRaceScreen({ plotNumber, firstName, lastName, city,
 
         <p className="text-xs uppercase tracking-widest text-gray-400 text-center mb-4">Trestné sekundy</p>
 
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-5 gap-2 mb-4">
           {PENALTY_PRESETS.map((cs) => (
             <button
               key={cs}
