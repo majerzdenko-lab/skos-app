@@ -337,13 +337,12 @@ export default function Registration() {
         </div>
 
         {/* Participant list */}
-        <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm min-w-[600px]">
+        <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-gray-100 text-left border-b border-gray-300">
               <th className="px-3 py-2">Meno</th>
-              <th className="px-3 py-2">Bydlisko</th>
-              <th className="px-3 py-2">Dátum nar.</th>
+              <th className="px-3 py-2 hidden sm:table-cell">Bydlisko</th>
+              <th className="px-3 py-2 hidden md:table-cell">Dátum nar.</th>
               <th className="px-3 py-2">Kategória</th>
               <th className="px-3 py-2 w-10"></th>
             </tr>
@@ -352,8 +351,8 @@ export default function Registration() {
             {filtered.map((p) => (
               <tr key={p.id} className={`border-b border-gray-100 hover:bg-gray-50 ${p.entries.length === 0 ? 'bg-amber-50' : ''}`}>
                 <td className="px-3 py-2">{p.firstName} {p.lastName}</td>
-                <td className="px-3 py-2">{p.city}</td>
-                <td className="px-3 py-2 text-gray-500">{p.dateOfBirth ?? '—'}</td>
+                <td className="px-3 py-2 hidden sm:table-cell">{p.city}</td>
+                <td className="px-3 py-2 text-gray-500 hidden md:table-cell">{p.dateOfBirth ?? '—'}</td>
                 <td className="px-3 py-2 text-xs text-gray-600">
                   {p.entries.length > 0 ? p.entries.map((e) => e.category.name).join(', ') : <span className="text-amber-600">— rozhodca</span>}
                 </td>
@@ -388,7 +387,6 @@ export default function Registration() {
             ))}
           </tbody>
         </table>
-        </div>
       </div>
 
       {/* Close registration confirmation modal */}
