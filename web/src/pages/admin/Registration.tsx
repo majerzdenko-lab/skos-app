@@ -37,7 +37,7 @@ export default function Registration() {
 
   // Edit modal
   const [editTarget, setEditTarget] = useState<ParticipantWithEntries | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', city: '', dateOfBirth: '', email: '', emailConsent: false });
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', city: '', dateOfBirth: '', email: '', emailConsent: false, categoryId: '' });
   const [editLoading, setEditLoading] = useState(false);
 
   // Status workflow
@@ -132,6 +132,7 @@ export default function Registration() {
     setEditForm({
       firstName: p.firstName, lastName: p.lastName, city: p.city,
       dateOfBirth: p.dateOfBirth ?? '', email: p.email ?? '', emailConsent: p.emailConsent,
+      categoryId: p.entries[0]?.categoryId ?? '',
     });
     setOpenMenuId(null);
   };
@@ -160,8 +161,9 @@ export default function Registration() {
         firstName: editForm.firstName, lastName: editForm.lastName, city: editForm.city,
         dateOfBirth: editForm.dateOfBirth || undefined, email: editForm.email || undefined,
         emailConsent: editForm.emailConsent,
+        categoryId: editForm.categoryId,
       });
-      setParts((prev) => prev.map((p) => p.id === editTarget.id ? { ...p, ...data } : p));
+      setParts((prev) => prev.map((p) => p.id === editTarget.id ? { ...p, ...data, entries: data.entries } : p));
       setEditTarget(null);
     } finally {
       setEditLoading(false);
@@ -478,6 +480,14 @@ export default function Registration() {
                 <label className="text-xs text-gray-500 block mb-1">Email</label>
                 <input type="email" value={editForm.email} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
                   className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Kategória</label>
+                <select value={editForm.categoryId} onChange={(e) => setEditForm((f) => ({ ...f, categoryId: e.target.value }))}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full">
+                  <option value="">— Bez kategórie (rozhodca) —</option>
+                  {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
               <label className="flex items-center gap-2 text-sm text-gray-600">
                 <input type="checkbox" checked={editForm.emailConsent} onChange={(e) => setEditForm((f) => ({ ...f, emailConsent: e.target.checked }))} />

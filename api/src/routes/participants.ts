@@ -103,9 +103,20 @@ router.put('/:id/participants/:pid', authenticate, requireEventRole('ADMIN', 'RE
     return;
   }
   const { categoryId, ...updateData } = req.body;
-  const updated = await prisma.participant.update({
+
+  await prisma.$transaction(async (tx) => {
+    await tx.participant.update({ where: { id: req.params.pid }, data: updateData });
+    if (categoryId !== undefined) {
+      await tx.entry.deleteMany({ where: { participantId: req.params.pid } });
+      if (categoryId) {
+        await tx.entry.create({ data: { participantId: req.params.pid, categoryId } });
+      }
+    }
+  });
+
+  const updated = await prisma.participant.findFirst({
     where: { id: req.params.pid },
-    data: updateData,
+    include: { entries: { include: { category: true } } },
   });
   res.json(updated);
 });

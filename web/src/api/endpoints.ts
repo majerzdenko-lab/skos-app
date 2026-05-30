@@ -51,7 +51,7 @@ export const participants = {
   create: (eventId: string, data: ParticipantInput) =>
     client.post<Participant>(`/api/events/${eventId}/participants`, data),
   update: (eventId: string, pid: string, data: Partial<ParticipantInput>) =>
-    client.put<Participant>(`/api/events/${eventId}/participants/${pid}`, data),
+    client.put<ParticipantWithEntries>(`/api/events/${eventId}/participants/${pid}`, data),
   delete: (eventId: string, pid: string) =>
     client.delete(`/api/events/${eventId}/participants/${pid}`),
   makeJudge: (eventId: string, pid: string, data: { email: string; password: string }) =>
