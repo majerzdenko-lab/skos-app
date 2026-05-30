@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useSocketStore } from '../stores/socketStore';
+import { useAuthStore } from '../stores/authStore';
 
 export function useEventSocket(
   eventId: string | undefined,
@@ -15,7 +16,8 @@ export function useEventSocket(
   const { socket, connect, joinEvent, leaveEvent } = useSocketStore();
 
   useEffect(() => {
-    connect();
+    const token = useAuthStore.getState().accessToken ?? undefined;
+    connect(token);
   }, [connect]);
 
   useEffect(() => {

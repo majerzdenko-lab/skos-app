@@ -5,7 +5,7 @@ import { prisma } from '../prisma';
 import { authenticate } from '../middleware/authenticate';
 import { requireEventRole } from '../middleware/requireRole';
 import { validate } from '../middleware/validate';
-import { getIo } from '../socket';
+import { getIo, emitToAuthRoom } from '../socket';
 import { computeRankings } from '../services/ranking';
 import { sendCategoryResults } from '../services/email';
 
@@ -181,7 +181,7 @@ router.post('/entries/:entryId/claim', authenticate, async (req, res) => {
     include: { category: true, judges: judgeInclude },
   });
   const user = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { id: true, firstName: true, lastName: true } });
-  getIo().to(`event:${entry!.category.eventId}`).emit('entry:claimed', { entryId: req.params.entryId, judge: user });
+  emitToAuthRoom(entry!.category.eventId, 'entry:claimed', { entryId: req.params.entryId, judge: user });
   res.json({ ok: true, judges: entry!.judges });
 });
 
@@ -195,7 +195,7 @@ router.delete('/entries/:entryId/claim', authenticate, async (req, res) => {
   const targetUserId = role === 'ADMIN' && req.query.userId ? (req.query.userId as string) : req.user!.id;
   await prisma.entryJudge.deleteMany({ where: { entryId: req.params.entryId, userId: targetUserId } });
   const entry = await prisma.entry.findUnique({ where: { id: req.params.entryId }, include: { category: true } });
-  getIo().to(`event:${entry!.category.eventId}`).emit('entry:unclaimed', { entryId: req.params.entryId, userId: targetUserId });
+  emitToAuthRoom(entry!.category.eventId, 'entry:unclaimed', { entryId: req.params.entryId, userId: targetUserId });
   res.json({ ok: true });
 });
 
