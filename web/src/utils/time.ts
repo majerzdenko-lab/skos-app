@@ -36,3 +36,23 @@ export function formatEventDate(date: string | Date): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   return d.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+// Convert "DD.MM.YYYY" stored value to "YYYY-MM-DD" for <input type="date">
+export function toInputDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const parts = value.split('.');
+  if (parts.length === 3 && parts[2].length === 4) {
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+  }
+  return value; // already ISO or unknown format
+}
+
+// Convert "YYYY-MM-DD" from <input type="date"> to "DD.MM.YYYY" for storage
+export function fromInputDate(value: string): string {
+  if (!value) return '';
+  const parts = value.split('-');
+  if (parts.length === 3) {
+    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+  }
+  return value;
+}

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, participants as participantsApi, auth, me as meApi } from '../../api/endpoints';
 import type { PublicEvent, Category } from '../../api/endpoints';
 import { useAuthStore } from '../../stores/authStore';
-import { formatEventDate } from '../../utils/time';
+import { formatEventDate, toInputDate, fromInputDate } from '../../utils/time';
 import Layout from '../../components/Layout';
 
 export default function Register() {
@@ -227,8 +227,14 @@ export default function Register() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Dátum narodenia</label>
-            <input placeholder="DD.MM.YYYY alebo YYYY" value={form.dateOfBirth} onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+            <input
+              type="date"
+              value={toInputDate(form.dateOfBirth)}
+              max={new Date().toISOString().split('T')[0]}
+              min="1920-01-01"
+              onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: fromInputDate(e.target.value) }))}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Kategória *</label>

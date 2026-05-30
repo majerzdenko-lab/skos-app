@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { events as eventsApi, categories as categoriesApi, participants as participantsApi, entries as entriesApi } from '../../api/endpoints';
 import type { Event, Category, ParticipantWithEntries } from '../../api/endpoints';
 import Layout from '../../components/Layout';
+import { toInputDate, fromInputDate } from '../../utils/time';
 
 const EMPTY_FORM = { firstName: '', lastName: '', city: '', dateOfBirth: '', email: '', emailConsent: false, categoryId: '' };
 
@@ -301,8 +302,12 @@ export default function Registration() {
             <input required placeholder="Bydlisko" value={form.city}
               onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm" />
-            <input placeholder="Dátum nar. (DD.MM.YYYY)" value={form.dateOfBirth}
-              onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
+            <input
+              type="date"
+              value={toInputDate(form.dateOfBirth)}
+              max={new Date().toISOString().split('T')[0]}
+              min="1920-01-01"
+              onChange={(e) => setForm((f) => ({ ...f, dateOfBirth: fromInputDate(e.target.value) }))}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm" />
             <select value={form.categoryId} onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
               className="border border-gray-300 rounded px-2 py-1.5 text-sm">
@@ -459,9 +464,15 @@ export default function Registration() {
                   className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 block mb-1">Dátum narodenia (DD.MM.YYYY)</label>
-                <input value={editForm.dateOfBirth} onChange={(e) => setEditForm((f) => ({ ...f, dateOfBirth: e.target.value }))}
-                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full" />
+                <label className="text-xs text-gray-500 block mb-1">Dátum narodenia</label>
+                <input
+                  type="date"
+                  value={toInputDate(editForm.dateOfBirth)}
+                  max={new Date().toISOString().split('T')[0]}
+                  min="1920-01-01"
+                  onChange={(e) => setEditForm((f) => ({ ...f, dateOfBirth: fromInputDate(e.target.value) }))}
+                  className="border border-gray-300 rounded px-3 py-1.5 text-sm w-full"
+                />
               </div>
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Email</label>
