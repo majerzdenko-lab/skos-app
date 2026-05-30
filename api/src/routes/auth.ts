@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import argon2 from 'argon2';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { prisma } from '../prisma';
@@ -30,7 +30,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
   }
 
   const userCount = await prisma.user.count();
-  const passwordHash = await argon2.hash(password);
+  const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
     data: { email, passwordHash, firstName, lastName, systemRole: userCount === 0 ? 'ADMIN' : 'USER' },
   });
@@ -47,7 +47,7 @@ router.post('/login', validate(loginSchema), async (req, res) => {
     return;
   }
 
-  const valid = await argon2.verify(user.passwordHash, password);
+  const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
