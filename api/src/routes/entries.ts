@@ -170,6 +170,27 @@ router.post('/entries/:entryId/claim', authenticate, async (req, res) => {
     res.status(403).json({ error: 'Forbidden' });
     return;
   }
+
+  // Rule 4: judge cannot claim an entry in the category they compete in
+  if (role === 'JUDGE') {
+    const targetEntry = await prisma.entry.findUnique({
+      where: { id: req.params.entryId },
+      select: { categoryId: true, category: { select: { eventId: true } } },
+    });
+    if (targetEntry) {
+      const conflict = await prisma.entry.findFirst({
+        where: {
+          categoryId: targetEntry.categoryId,
+          participant: { eventId: targetEntry.category.eventId, userId: req.user!.id },
+        },
+      });
+      if (conflict) {
+        res.status(403).json({ error: 'Rozhodca nemôže hodnotiť vo vlastnej kategórii.' });
+        return;
+      }
+    }
+  }
+
   try {
     await prisma.entryJudge.create({ data: { entryId: req.params.entryId, userId: req.user!.id } });
   } catch {
@@ -201,12 +222,26 @@ router.delete('/entries/:entryId/claim', authenticate, async (req, res) => {
 
 // POST /api/events/:id/categories/:catId/assign-judges
 router.post('/events/:id/categories/:catId/assign-judges', authenticate, requireEventRole('ADMIN', 'REGISTRAR'), async (req, res) => {
+  // Rule 4: exclude judges who compete in this category
   const judges = await prisma.eventUser.findMany({
-    where: { eventId: req.params.id, role: 'JUDGE' },
+    where: {
+      eventId: req.params.id,
+      role: 'JUDGE',
+      NOT: {
+        user: {
+          participants: {
+            some: {
+              eventId: req.params.id,
+              entries: { some: { categoryId: req.params.catId } },
+            },
+          },
+        },
+      },
+    },
     select: { userId: true },
   });
   if (judges.length === 0) {
-    res.status(400).json({ error: 'Žiadni rozhodcovia nie sú priradení k tejto súťaži.' });
+    res.status(400).json({ error: 'Žiadni oprávnení rozhodcovia pre túto kategóriu (všetci súťažia v nej).' });
     return;
   }
   const entries = await prisma.entry.findMany({

@@ -45,6 +45,11 @@ router.get('/', authenticate, async (req, res) => {
 });
 
 router.post('/', authenticate, validate(createEventSchema), async (req, res) => {
+  const creator = await prisma.user.findUnique({ where: { id: req.user!.id }, select: { systemRole: true } });
+  if (creator?.systemRole !== 'ADMIN') {
+    res.status(403).json({ error: 'Len systémový administrátor môže vytvárať podujatia.' });
+    return;
+  }
   const event = await prisma.event.create({
     data: {
       name: req.body.name,

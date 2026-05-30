@@ -67,12 +67,14 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex gap-3 flex-wrap">
-            <button
-              onClick={() => setCreating(true)}
-              className="bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800"
-            >
-              + Nové podujatie
-            </button>
+            {user?.systemRole === 'ADMIN' && (
+              <button
+                onClick={() => setCreating(true)}
+                className="bg-green-700 text-white px-4 py-2 rounded text-sm font-medium hover:bg-green-800"
+              >
+                + Nové podujatie
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="border border-gray-300 px-4 py-2 rounded text-sm hover:bg-gray-50"
